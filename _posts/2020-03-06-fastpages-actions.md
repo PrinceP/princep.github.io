@@ -2,6 +2,7 @@
 title: "GitHub Actions: Providing Data Scientists With New Superpowers"
 description: A Tutorial on GitHub <a href="https://github.com/features/actions">Actions</a> For Data Scientists
 toc: true
+hide: true
 comments: true
 layout: post
 categories: [actions, markdown]
