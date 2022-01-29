@@ -4,19 +4,21 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.6.1 -->
-<title>Bazel for C++, Android and IOS | Prince Patel</title>
+<title>Bazel: Building for C++, Android and IOS | Prince Patel</title>
 <meta name="generator" content="Jekyll v4.1.1" />
-<meta property="og:title" content="Bazel for C++, Android and IOS" />
+<meta property="og:title" content="Bazel: Building for C++, Android and IOS" />
+<meta name="author" content="Prince" />
 <meta property="og:locale" content="en_US" />
-<meta name="description" content="Introduction of Bazel workflow" />
-<meta property="og:description" content="Introduction of Bazel workflow" />
+<meta name="description" content="A Introduction tutorial on Bazel for creating apps" />
+<meta property="og:description" content="A Introduction tutorial on Bazel for creating apps" />
 <link rel="canonical" href="https://princep.github.io/bazel/2021/01/22/Bazel.html" />
 <meta property="og:url" content="https://princep.github.io/bazel/2021/01/22/Bazel.html" />
 <meta property="og:site_name" content="Prince Patel" />
+<meta property="og:image" content="https://princep.github.io/images/bazel_logo.png" />
 <meta property="og:type" content="article" />
 <meta property="article:published_time" content="2021-01-22T00:00:00-06:00" />
 <script type="application/ld+json">
-{"url":"https://princep.github.io/bazel/2021/01/22/Bazel.html","@type":"BlogPosting","headline":"Bazel for C++, Android and IOS","dateModified":"2021-01-22T00:00:00-06:00","datePublished":"2021-01-22T00:00:00-06:00","mainEntityOfPage":{"@type":"WebPage","@id":"https://princep.github.io/bazel/2021/01/22/Bazel.html"},"description":"Introduction of Bazel workflow","@context":"https://schema.org"}</script>
+{"description":"A Introduction tutorial on Bazel for creating apps","url":"https://princep.github.io/bazel/2021/01/22/Bazel.html","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://princep.github.io/bazel/2021/01/22/Bazel.html"},"headline":"Bazel: Building for C++, Android and IOS","dateModified":"2021-01-22T00:00:00-06:00","datePublished":"2021-01-22T00:00:00-06:00","author":{"@type":"Person","name":"Prince"},"image":"https://princep.github.io/images/bazel_logo.png","@context":"https://schema.org"}</script>
 <!-- End Jekyll SEO tag -->
 <link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://princep.github.io/feed.xml" title="Prince Patel" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
@@ -87,20 +89,22 @@ window.onload = wrap_img;
         <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
 
   <header class="post-header">
-    <h1 class="post-title p-name" itemprop="name headline">Bazel for C++, Android and IOS</h1><p class="page-description">Introduction of Bazel workflow</p><p class="post-meta post-meta-title"><time class="dt-published" datetime="2021-01-22T00:00:00-06:00" itemprop="datePublished">
+    <h1 class="post-title p-name" itemprop="name headline">Bazel: Building for C++, Android and IOS</h1><p class="page-description">A Introduction tutorial on Bazel for creating apps</p><p class="post-meta post-meta-title"><time class="dt-published" datetime="2021-01-22T00:00:00-06:00" itemprop="datePublished">
         Jan 22, 2021
-      </time>
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">Prince</span></span>
        • <span class="read-time" title="Estimated read time">
     
     
-      1 min read
+      2 min read
     
 </span></p>
 
     
       <p class="category-tags"><i class="fas fa-tags category-tags-icon"></i></i> 
       
-        <a class="category-tags-link" href="/categories/#Bazel">Bazel</a>
+        <a class="category-tags-link" href="/categories/#bazel">bazel</a>
         
       
       </p>
@@ -111,9 +115,154 @@ window.onload = wrap_img;
   <div class="post-content e-content" itemprop="articleBody">
     <ul class="section-nav">
 <li class="toc-entry toc-h1"><a href="#introduction">Introduction</a></li>
+<li class="toc-entry toc-h1"><a href="#installation">Installation</a></li>
+<li class="toc-entry toc-h1"><a href="#terminologies">Terminologies</a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#workspace">Workspace</a></li>
+<li class="toc-entry toc-h3"><a href="#repositories">Repositories</a></li>
+<li class="toc-entry toc-h3"><a href="#packages">Packages</a></li>
+<li class="toc-entry toc-h3"><a href="#targets-and-labels">Targets and Labels</a></li>
+<li class="toc-entry toc-h3"><a href="#rules">Rules</a></li>
+<li class="toc-entry toc-h3"><a href="#build-files">BUILD files</a>
+<ul>
+<li class="toc-entry toc-h4"><a href="#extensions">Extensions</a></li>
+<li class="toc-entry toc-h4"><a href="#rules-1">Rules</a></li>
+<li class="toc-entry toc-h4"><a href="#dependencies">Dependencies</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toc-entry toc-h1"><a href="#bazel-commands">Bazel commands</a></li>
 </ul><h1 id="introduction">
 <a class="anchor" href="#introduction" aria-hidden="true"><span class="octicon octicon-link"></span></a>Introduction</h1>
-<p>In progress</p>
+
+<p>Bazel is a tool for building and testing applications. The same thing can be performed by Make, CMakelists or Gradle.
+What makes Bazel different? It can develop application for different platforms, with different codebases and is highly parallel. The largest repos are built mostly with Bazel <a href="https://bazel.build/users.html">now</a>.</p>
+
+<h1 id="installation">
+<a class="anchor" href="#installation" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation</h1>
+
+<p>Download and <a href="https://docs.bazel.build/versions/main/install.html">install Bazel</a>.</p>
+
+<h1 id="terminologies">
+<a class="anchor" href="#terminologies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Terminologies</h1>
+
+<h3 id="workspace">
+<a class="anchor" href="#workspace" aria-hidden="true"><span class="octicon octicon-link"></span></a>Workspace</h3>
+<p>The main directory of the project from where all the sources files are accessible. A workspace is made when bazel finds a <code class="language-plaintext highlighter-rouge">WORKSPACE</code> or <code class="language-plaintext highlighter-rouge">WORKSPACE.bazel</code> file.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  # Here repo is the workspace and contains WORKSPACE file
+  repo/src/module1/BUILD
+  repo/src/module1/runner1.cc
+  repo/src/module2/BUILD
+  repo/src/module2/runner2.cc
+  repo/src/tests/data/cases.txt
+  repo/src/tests/BUILD
+  repo/src/tests/pass.py
+  repo/WORKSPACE
+</code></pre></div></div>
+
+<h3 id="repositories">
+<a class="anchor" href="#repositories" aria-hidden="true"><span class="octicon octicon-link"></span></a>Repositories</h3>
+<p>The directory containing the <code class="language-plaintext highlighter-rouge">WORKSPACE</code> file, is also called as <code class="language-plaintext highlighter-rouge">@</code>. We can also have several external repositories for a project.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  # Here @repo can be seen as a repository
+  repo/src/module1/BUILD
+  repo/src/module1/runner1.cc
+  repo/src/module2/BUILD
+  repo/src/module2/runner2.cc
+  repo/src/tests/data/cases.txt
+  repo/src/tests/BUILD
+  repo/src/tests/pass.py
+  repo/WORKSPACE
+</code></pre></div></div>
+
+<h3 id="packages">
+<a class="anchor" href="#packages" aria-hidden="true"><span class="octicon octicon-link"></span></a>Packages</h3>
+<p>All related files for a particular task in the source directory are called as packages. Each package is defined by <code class="language-plaintext highlighter-rouge">BUILD</code> file.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  # Here module1, module2 and tests are defined as packages, Not data
+  repo/src/module1/BUILD
+  repo/src/module1/runner1.cc
+  repo/src/module2/BUILD
+  repo/src/module2/runner2.cc
+  repo/src/tests/data/cases.txt
+  repo/src/tests/BUILD
+  repo/src/tests/pass.py
+  repo/WORKSPACE
+</code></pre></div></div>
+
+<h3 id="targets-and-labels">
+<a class="anchor" href="#targets-and-labels" aria-hidden="true"><span class="octicon octicon-link"></span></a>Targets and Labels</h3>
+<p>Contents of the package are called as targets.
+The contents can be files or rules(defined later). 
+The files can be source files(code files) or generated files(.o/.pyc/.osx/.exe etc).</p>
+
+<p>The name of the target is called as label. Each label is uniquely pointing to a target.
+So given the previous example, we can have following targets.</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@repo//src/module1:runner1
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@repo//src/module2:runner2
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@repo//src/tests:pass
+</code></pre></div></div>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>@repo//src/tests:data/cases.txt
+</code></pre></div></div>
+<p>The naming also allows <code class="language-plaintext highlighter-rouge">//src/tests:pass</code> if we are inside repo folder.
+For external repositories, the name should be given in full.</p>
+
+<p>All naming conventions are standard in the above cases i.e. (//,.,..,<space>) are not allowed as names of either package or target.
+They all should be meaningful in nature.</space></p>
+
+<h3 id="rules">
+<a class="anchor" href="#rules" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rules</h3>
+<p>It is way to generate outputs from the given inputs. Now for each language we have different rules. For C/C++, we have <code class="language-plaintext highlighter-rouge">cc_binary</code> rule.
+For python, we have <code class="language-plaintext highlighter-rouge">py_binary</code> rule. So we have <a href="https://docs.bazel.build/versions/main/rules.html">given rules</a> for each file.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  # runner1 is a C++ file, dependencies are defined in deps
+  cc_binary(
+    name = "runner1",
+    srcs = ["runner1.cc"],
+    deps = [
+        "//absl/base",
+        "//absl/strings",
+    ],
+)
+</code></pre></div></div>
+
+<h3 id="build-files">
+<a class="anchor" href="#build-files" aria-hidden="true"><span class="octicon octicon-link"></span></a>BUILD files</h3>
+<p>The build file is comparised of following sections.</p>
+
+<h4 id="extensions">
+<a class="anchor" href="#extensions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Extensions</h4>
+<p>Use the <code class="language-plaintext highlighter-rouge">load</code> statement, to import something which can be a particular rule, symbol or constant.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  load("//src/custom:file.bzl", "custom_package")
+</code></pre></div></div>
+
+<h4 id="rules-1">
+<a class="anchor" href="#rules-1" aria-hidden="true"><span class="octicon octicon-link"></span></a>Rules</h4>
+<p>All the standard available rules are given here.</p>
+
+<h4 id="dependencies">
+<a class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h4>
+<ul>
+  <li>srcs
+Files or rules</li>
+  <li>deps
+Symbols, libraries, generated files</li>
+  <li>data
+txt,image,audio etc</li>
+</ul>
+
+<h1 id="bazel-commands">
+<a class="anchor" href="#bazel-commands" aria-hidden="true"><span class="octicon octicon-link"></span></a>Bazel commands</h1>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>  bazel --version -&gt; gives version
+  bazel build &lt;labels&gt; -&gt; builds the package
+  bazel-bin/&lt;label-names&gt;/&lt;target&gt; -&gt; executes the package
+  bazel query --notool_deps --noimplicit_deps "deps(&lt;target&gt;)" --output graph --&gt; generates the graph
+  
+</code></pre></div></div>
+
 
   </div><!-- from https://github.com/utterance/utterances -->
 <script src="https://utteranc.es/client.js"
