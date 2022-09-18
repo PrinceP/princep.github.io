@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="twitter:card" content="summary_large_image" /><!-- Begin Jekyll SEO tag v2.6.1 -->
+<title>Benchmarking Neural Networks | Prince Patel</title>
+<meta name="generator" content="Jekyll v4.1.1" />
+<meta property="og:title" content="Benchmarking Neural Networks" />
+<meta name="author" content="Prince" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Methods for calculating the performance of the neural network models" />
+<meta property="og:description" content="Methods for calculating the performance of the neural network models" />
+<link rel="canonical" href="https://princep.github.io/pytorch/flops/odml/2022/09/12/FLOPs-Model.html" />
+<meta property="og:url" content="https://princep.github.io/pytorch/flops/odml/2022/09/12/FLOPs-Model.html" />
+<meta property="og:site_name" content="Prince Patel" />
+<meta property="og:image" content="https://princep.github.io/images/flops_logo.png" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2022-09-12T00:00:00-05:00" />
+<script type="application/ld+json">
+{"description":"Methods for calculating the performance of the neural network models","url":"https://princep.github.io/pytorch/flops/odml/2022/09/12/FLOPs-Model.html","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://princep.github.io/pytorch/flops/odml/2022/09/12/FLOPs-Model.html"},"headline":"Benchmarking Neural Networks","dateModified":"2022-09-12T00:00:00-05:00","datePublished":"2022-09-12T00:00:00-05:00","author":{"@type":"Person","name":"Prince"},"image":"https://princep.github.io/images/flops_logo.png","@context":"https://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+<link rel="stylesheet" href="/assets/css/style.css"><link type="application/atom+xml" rel="alternate" href="https://princep.github.io/feed.xml" title="Prince Patel" /><link rel="shortcut icon" type="image/x-icon" href="/images/favicon.ico"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Primer/15.2.0/primer.css" integrity="sha512-xTz2ys4coGAOz8vuV1NcQBkgVmKhsSEtjbqyMJbBHRplFuvKIUo6xhLHpAyPt9mfR6twHJgn9OgVLuqOvjeBhg==" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.min.css" integrity="sha512-1PKOgIY59xJ8Co8+NE6FZ+LOAZKjy+KY8iq0G4B3CyeY6wYHN3yt9PW0XpSriVlkMXe40PTKnXrLnZ9+fkDaog==" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.css" integrity="sha512-h7nl+xz8wgDlNM4NqKEM4F1NkIRS17M9+uJwIGwuo8vGqIl4BhuCKdxjWEINm+xyrUjNCnK5dCrhM0sj+wTIXw==" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/katex.min.js" integrity="sha512-/CMIhXiDA3m2c9kzRyd97MTb3MC6OVnx4TElQ7fkkoRghwDf6gi41gaT1PwF270W6+J60uTmwgeRpNpJdRV6sg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.12.0/contrib/auto-render.min.js" integrity="sha512-Do7uJAaHZm5OLrIv/yN4w0iG1dbu01kzdMNnFfu/mAqgUk6Nniv2JYHcwH+cNwjqgLcqcuBBk+JRvprLVI8azg==" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/MathJax.js" integrity="sha512-0doc9hKxR3PYwso42RD1p5ySZpzzuDiOwMrdCEh2WdJZCjcmFKc/wEnL+z8fBQrnHoiNWbo+3fiGkOYXBdQp4A==" crossorigin="anonymous"></script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        renderMathInElement( document.body, {
+        delimiters: [
+            {left: "$$", right: "$$", display: true},
+            {left: "[%", right: "%]", display: true},
+            {left: "$", right: "$", display: false}
+        ]}
+        );
+    });
+    </script>
+
+
+<script>
+function wrap_img(fn) {
+    if (document.attachEvent ? document.readyState === "complete" : document.readyState !== "loading") {
+        var elements = document.querySelectorAll(".post img");
+        Array.prototype.forEach.call(elements, function(el, i) {
+            if (el.getAttribute("title") && (el.className != "emoji")) {
+                const caption = document.createElement('figcaption');
+                var node = document.createTextNode(el.getAttribute("title"));
+                caption.appendChild(node);
+                const wrapper = document.createElement('figure');
+                wrapper.className = 'image';
+                el.parentNode.insertBefore(wrapper, el);
+                el.parentNode.removeChild(el);
+                wrapper.appendChild(el);
+                wrapper.appendChild(caption);
+            }
+        });
+    } else { document.addEventListener('DOMContentLoaded', fn); }
+}
+window.onload = wrap_img;
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function(){
+    // add link icon to anchor tags
+    var elem = document.querySelectorAll(".anchor-link")
+    elem.forEach(e => (e.innerHTML = '<i class="fas fa-link fa-xs"></i>'));
+    });
+</script>
+</head>
+<body><header class="site-header">
+
+  <div class="wrapper"><a class="site-title" rel="author" href="/">Prince Patel</a><nav class="site-nav">
+        <input type="checkbox" id="nav-trigger" class="nav-trigger" />
+        <label for="nav-trigger">
+          <span class="menu-icon">
+            <svg viewBox="0 0 18 15" width="18px" height="15px">
+              <path d="M18,1.484c0,0.82-0.665,1.484-1.484,1.484H1.484C0.665,2.969,0,2.304,0,1.484l0,0C0,0.665,0.665,0,1.484,0 h15.032C17.335,0,18,0.665,18,1.484L18,1.484z M18,7.516C18,8.335,17.335,9,16.516,9H1.484C0.665,9,0,8.335,0,7.516l0,0 c0-0.82,0.665-1.484,1.484-1.484h15.032C17.335,6.031,18,6.696,18,7.516L18,7.516z M18,13.516C18,14.335,17.335,15,16.516,15H1.484 C0.665,15,0,14.335,0,13.516l0,0c0-0.82,0.665-1.483,1.484-1.483h15.032C17.335,12.031,18,12.695,18,13.516L18,13.516z"/>
+            </svg>
+          </span>
+        </label>
+
+        <div class="trigger"><a class="page-link" href="/about/">About Me</a><a class="page-link" href="/search/">Search</a><a class="page-link" href="/categories/">Tags</a></div>
+      </nav></div>
+</header>
+<main class="page-content" aria-label="Content">
+      <div class="wrapper">
+        <article class="post h-entry" itemscope itemtype="http://schema.org/BlogPosting">
+
+  <header class="post-header">
+    <h1 class="post-title p-name" itemprop="name headline">Benchmarking Neural Networks</h1><p class="page-description">Methods for calculating the performance of the neural network models</p><p class="post-meta post-meta-title"><time class="dt-published" datetime="2022-09-12T00:00:00-05:00" itemprop="datePublished">
+        Sep 12, 2022
+      </time>• 
+          <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+            <span class="p-author h-card" itemprop="name">Prince</span></span>
+       • <span class="read-time" title="Estimated read time">
+    
+    
+      3 min read
+    
+</span></p>
+
+    
+      <p class="category-tags"><i class="fas fa-tags category-tags-icon"></i></i> 
+      
+        <a class="category-tags-link" href="/categories/#pytorch">pytorch</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/categories/#FLOPS">FLOPS</a>
+        &nbsp;
+      
+        <a class="category-tags-link" href="/categories/#ODML">ODML</a>
+        
+      
+      </p>
+    
+
+    
+      
+        <div class="pb-5 d-flex flex-wrap flex-justify-end">
+          <div class="px-2">
+
+    <a href="https://github.com/princep//tree/master/_notebooks/2022-09-12-FLOPs-Model.ipynb" role="button" target="_blank">
+<img class="notebook-badge-image" src="/assets/badges/github.svg" alt="View On GitHub">
+    </a>
+</div>
+
+          <div class="px-2">
+    <a href="https://mybinder.org/v2/gh/princep//master?filepath=_notebooks%2F2022-09-12-FLOPs-Model.ipynb" target="_blank">
+        <img class="notebook-badge-image" src="/assets/badges/binder.svg" alt="Open In Binder"/>
+    </a>
+</div>
+
+          <div class="px-2">
+    <a href="https://colab.research.google.com/github/princep//blob/master/_notebooks/2022-09-12-FLOPs-Model.ipynb" target="_blank">
+        <img class="notebook-badge-image" src="/assets/badges/colab.svg" alt="Open In Colab"/>
+    </a>
+</div>
+        </div>
+      </header>
+
+  <div class="post-content e-content" itemprop="articleBody">
+    <ul class="section-nav">
+<li class="toc-entry toc-h1"><a href="#Parameters-to-be-measured">Parameters to be measured </a>
+<ul>
+<li class="toc-entry toc-h2"><a href="#Inference-time">Inference time </a></li>
+<li class="toc-entry toc-h2"><a href="#FLOPs:-Floating-Point-Operations">FLOPs: Floating Point Operations </a></li>
+<li class="toc-entry toc-h2"><a href="#FLOPS">FLOPS </a></li>
+<li class="toc-entry toc-h2"><a href="#MACs">MACs </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h1"><a href="#How-to-calculate?">How to calculate? </a>
+<ul>
+<li class="toc-entry toc-h2"><a href="#Fully-Connected-Layer">Fully Connected Layer </a></li>
+<li class="toc-entry toc-h2"><a href="#Activations">Activations </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#RELU">RELU </a></li>
+<li class="toc-entry toc-h3"><a href="#Tanh">Tanh </a></li>
+<li class="toc-entry toc-h3"><a href="#sigmoid">sigmoid </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#Pooling-Layer">Pooling Layer </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#MaxPool-1D,-2D,-3D">MaxPool 1D, 2D, 3D </a></li>
+<li class="toc-entry toc-h3"><a href="#Average-MaxPool-1D,-2D,-3D">Average MaxPool 1D, 2D, 3D </a></li>
+</ul>
+</li>
+<li class="toc-entry toc-h2"><a href="#DropOut">DropOut </a></li>
+<li class="toc-entry toc-h2"><a href="#Batch-Normalization-:-Only-while-training">Batch Normalization : Only while training </a></li>
+<li class="toc-entry toc-h2"><a href="#Softmax">Softmax </a></li>
+<li class="toc-entry toc-h2"><a href="#Convolutions">Convolutions </a>
+<ul>
+<li class="toc-entry toc-h3"><a href="#Depthwise-convolution">Depthwise convolution </a></li>
+<li class="toc-entry toc-h3"><a href="#Pointwise-convolution">Pointwise convolution </a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul><!--
+#################################################
+### THIS FILE WAS AUTOGENERATED! DO NOT EDIT! ###
+#################################################
+# file to edit: _notebooks/2022-09-12-FLOPs-Model.ipynb
+-->
+
+<div class="container" id="notebook-container">
+        
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="Parameters-to-be-measured">
+<a class="anchor" href="#Parameters-to-be-measured" aria-hidden="true"><span class="octicon octicon-link"></span></a>Parameters to be measured<a class="anchor-link" href="#Parameters-to-be-measured"> </a>
+</h1>
+<h2 id="Inference-time">
+<a class="anchor" href="#Inference-time" aria-hidden="true"><span class="octicon octicon-link"></span></a>Inference time<a class="anchor-link" href="#Inference-time"> </a>
+</h2>
+<ul>
+<li>How much time did the forward inference took for the model. </li>
+<li>1 / inference time = FPS we can get from the model</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="FLOPs:-Floating-Point-Operations">
+<a class="anchor" href="#FLOPs:-Floating-Point-Operations" aria-hidden="true"><span class="octicon octicon-link"></span></a>FLOPs: Floating Point Operations<a class="anchor-link" href="#FLOPs:-Floating-Point-Operations"> </a>
+</h2>
+<ul>
+<li>Calculate the total floating operations - Addtion, Subtraction, Multiplication, Division </li>
+<li>Large memory doesn't mean that FLOP's are higher. </li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="FLOPS">
+<a class="anchor" href="#FLOPS" aria-hidden="true"><span class="octicon octicon-link"></span></a>FLOPS<a class="anchor-link" href="#FLOPS"> </a>
+</h2>
+<ul>
+<li>Floating Point Operations per Second</li>
+<li>The higher number of operations per second, the faster inference for the model</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Unit</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>kiloFLOPS</td>
+<td>kFLOPS</td>
+<td>10^3</td>
+</tr>
+<tr>
+<td>megaFLOPS</td>
+<td>MFLOPS</td>
+<td>10^6</td>
+</tr>
+<tr>
+<td>gigaFLOPS</td>
+<td>GFLOPS</td>
+<td>10^9</td>
+</tr>
+<tr>
+<td>teraFLOPS</td>
+<td>TFLOPS</td>
+<td>10^12</td>
+</tr>
+<tr>
+<td>petaFLOPS</td>
+<td>PFLOPS</td>
+<td>10^15</td>
+</tr>
+<tr>
+<td>exaFLOPS</td>
+<td>EFLOPS</td>
+<td>10^18</td>
+</tr>
+<tr>
+<td>zettaFLOPS</td>
+<td>ZFLOPS</td>
+<td>10^21</td>
+</tr>
+<tr>
+<td>yottaFLOPS</td>
+<td>YFLOPS</td>
+<td>10^24</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="MACs">
+<a class="anchor" href="#MACs" aria-hidden="true"><span class="octicon octicon-link"></span></a>MACs<a class="anchor-link" href="#MACs"> </a>
+</h2>
+<ul>
+<li>Multiply-Accumulate computations</li>
+<li>
+<p>In a neuron, multiplication and addition operations happen in most of the cases.</p>
+<p><strong>W1 <em> I1 + W2 </em> I2 + W3 * I3</strong></p>
+</li>
+</ul>
+<ul>
+<li>
+<p>NOTE: <strong>1 MAC = 2 FLOPs</strong></p>
+<p>Since the operation consist's of 1 multiply and 1 addition</p>
+</li>
+<li>
+<p>NOTE: <strong>dot product = n multiplications + n - 1 additions = 2n - 1 FLOPs</strong></p>
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h1 id="How-to-calculate?">
+<a class="anchor" href="#How-to-calculate?" aria-hidden="true"><span class="octicon octicon-link"></span></a>How to calculate?<a class="anchor-link" href="#How-to-calculate?"> </a>
+</h1>
+<ul>
+<li>We can actually define each layer computation in terms of it operations</li>
+<li>Here we are considering the batch size to be 1. If the batch size increases, the flops also linearly increases.</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Fully-Connected-Layer">
+<a class="anchor" href="#Fully-Connected-Layer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Fully Connected Layer<a class="anchor-link" href="#Fully-Connected-Layer"> </a>
+</h2>
+<ul>
+<li>
+<p><strong>LAYER = (INPUT NODES) * (OUTPUT NODES) + BIAS</strong></p>
+<p>where * is the dot product discussed previously.</p>
+</li>
+<li>
+<p>So, For calculating FLOPs, we are just multiplying input and output. We can also add bias term, but for approximation we can leave it out.</p>
+</li>
+</ul>
+
+<pre><code>
+def _linear_flops(module, inp, out):
+    mul = module.in_features
+    add = module.in_features - 1
+    total_ops = (mul + add) * out.numel()
+    return total_ops</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Activations">
+<a class="anchor" href="#Activations" aria-hidden="true"><span class="octicon octicon-link"></span></a>Activations<a class="anchor-link" href="#Activations"> </a>
+</h2>
+<ul>
+<li>Most of the activations don't come with any overhead of multiplication but they do have some simpler arithemetic operation to it.</li>
+</ul>
+<h3 id="RELU">
+<a class="anchor" href="#RELU" aria-hidden="true"><span class="octicon octicon-link"></span></a>RELU<a class="anchor-link" href="#RELU"> </a>
+</h3>
+<ul>
+<li><strong>LAYER = INPUT NODES</strong></li>
+</ul>
+
+<pre><code># y = max(x,0) 
+
+def _relu_flops(module, inp, out):
+    return inp.numel()</code></pre>
+<h3 id="Tanh">
+<a class="anchor" href="#Tanh" aria-hidden="true"><span class="octicon octicon-link"></span></a>Tanh<a class="anchor-link" href="#Tanh"> </a>
+</h3>
+<ul>
+<li><strong>LAYER = INPUT NODES * 5</strong></li>
+</ul>
+
+<pre><code># y = e^(x) - e^(-x) / e^(x) + e^(-x)
+
+def _tanh_flops(module, inp, out):
+    # exp, exp^-1, sub, add, div for each element
+    total_ops = 5 * inp.numel()
+    return total_ops</code></pre>
+<h3 id="sigmoid">
+<a class="anchor" href="#sigmoid" aria-hidden="true"><span class="octicon octicon-link"></span></a>sigmoid<a class="anchor-link" href="#sigmoid"> </a>
+</h3>
+<ul>
+<li><strong>LAYER = INPUT NODES * 4</strong></li>
+</ul>
+
+<pre><code># y = 1 / (1 + e^(-x)) 
+
+
+def _sigmoid_flops(module, inp, out):
+    # negate, exp, add, div for each element
+    total_ops = 4 * inp.numel()
+    return total_ops</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Pooling-Layer">
+<a class="anchor" href="#Pooling-Layer" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pooling Layer<a class="anchor-link" href="#Pooling-Layer"> </a>
+</h2>
+<ul>
+<li>Depends on type of Pooling and Stride</li>
+</ul>
+<h3 id="MaxPool-1D,-2D,-3D">
+<a class="anchor" href="#MaxPool-1D,-2D,-3D" aria-hidden="true"><span class="octicon octicon-link"></span></a>MaxPool 1D, 2D, 3D<a class="anchor-link" href="#MaxPool-1D,-2D,-3D"> </a>
+</h3>
+<ul>
+<li><strong>LAYER = Max(INPUT NODES)</strong></li>
+</ul>
+
+<pre><code># Same as output
+
+def _maxpool_flops(module, inp, out):
+    total_ops = out.numel()
+    return total_ops</code></pre>
+<h3 id="Average-MaxPool-1D,-2D,-3D">
+<a class="anchor" href="#Average-MaxPool-1D,-2D,-3D" aria-hidden="true"><span class="octicon octicon-link"></span></a>Average MaxPool 1D, 2D, 3D<a class="anchor-link" href="#Average-MaxPool-1D,-2D,-3D"> </a>
+</h3>
+<ul>
+<li><strong>LAYER = Average(INPUT NODES)</strong></li>
+</ul>
+
+<pre><code># Same as output with kernel size
+
+def _avgpool_flops(module, inp, out):
+    # pool: kernel size, avg: 1
+    kernel_ops = _torch.prod(_torch.Tensor([module.kernel_size]))
+    total_ops = (kernel_ops + 1) * out.numel()
+    return total_ops</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="DropOut">
+<a class="anchor" href="#DropOut" aria-hidden="true"><span class="octicon octicon-link"></span></a>DropOut<a class="anchor-link" href="#DropOut"> </a>
+</h2>
+<ul>
+<li><strong>LAYER = probability of dropout * INPUT</strong></li>
+<li>Can be considered as Zero</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Batch-Normalization-:-Only-while-training">
+<a class="anchor" href="#Batch-Normalization-:-Only-while-training" aria-hidden="true"><span class="octicon octicon-link"></span></a>Batch Normalization : Only while training<a class="anchor-link" href="#Batch-Normalization-:-Only-while-training"> </a>
+</h2>
+<ul>
+<li><strong>LAYER = gamma * (y - mean) / sqrt(variance + epsilon) + beta</strong></li>
+</ul>
+
+<pre><code># 4 * number of input 
+
+def _bn_flops(module, inp, out):
+    nelements = inp.numel()
+    # subtract, divide, gamma, beta
+    total_ops = 4 * nelements
+    return total_ops</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Softmax">
+<a class="anchor" href="#Softmax" aria-hidden="true"><span class="octicon octicon-link"></span></a>Softmax<a class="anchor-link" href="#Softmax"> </a>
+</h2>
+<ul>
+<li><strong>LAYER = e^(Zi)/ SUM(e^(Zi))</strong></li>
+</ul>
+
+<pre><code>def _softmax_flops(module, inp, out):
+    batch_size, nfeatures = inp.size()
+    # exp: nfeatures, add: nfeatures-1, div: nfeatures
+    total_ops = batch_size * (3 * nfeatures - 1)
+    return total_ops</code></pre>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<h2 id="Convolutions">
+<a class="anchor" href="#Convolutions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Convolutions<a class="anchor-link" href="#Convolutions"> </a>
+</h2>
+<ul>
+<li><strong>LAYER = Number of Kernel x Kernel Shape x Output Shape</strong></li>
+</ul>
+
+<pre><code>
+def _convNd_flops(module, inp, out):
+    kernel_ops = module.weight.size()[2:].numel()  # k_h x k_w
+    bias_ops = 1 if module.bias is not None else 0
+    # (batch x out_c x out_h x out_w) x  (in_c x k_h x k_w + bias)
+    total_ops = out.nelement() * \
+        (module.in_channels // module.groups * kernel_ops + bias_ops)
+    return total_ops</code></pre>
+<h3 id="Depthwise-convolution">
+<a class="anchor" href="#Depthwise-convolution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Depthwise convolution<a class="anchor-link" href="#Depthwise-convolution"> </a>
+</h3>
+<ul>
+<li>Filter and input is broken channel-wise and convolved separately. After that, they are stacked together. <a href="https://miro.medium.com/max/519/1*Esdvt3HLoEQFen94x29Z0A.png">Example</a>
+</li>
+</ul>
+<ul>
+<li>
+<p>Number of operations are reduced here:</p>
+<p><strong>LAYER = Number of Kernel x Kernel Shape x Output Shape(without channel)</strong></p>
+</li>
+</ul>
+<h3 id="Pointwise-convolution">
+<a class="anchor" href="#Pointwise-convolution" aria-hidden="true"><span class="octicon octicon-link"></span></a>Pointwise convolution<a class="anchor-link" href="#Pointwise-convolution"> </a>
+</h3>
+<ul>
+<li>
+<p>1x1 Filter is applied on each pixel of input with same channel. <a href="https://app.dropinblog.com/uploaded/blogs/34241363/files/deep-learning-optimization_2.jpeg">Example</a></p>
+</li>
+<li>
+<p>Number of operations are reduced here:</p>
+<p><strong>LAYER = Number of Kernel x Kernel Shape(1x1) x Output Shape(without channel)</strong></p>
+</li>
+</ul>
+
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+
+</div>
+</div>
+</div>
+</div>
+
+
+
+  </div><!-- from https://github.com/utterance/utterances -->
+<script src="https://utteranc.es/client.js"
+        repo="princep/princep.github.io"
+        issue-term="title"
+        label="blogpost-comment"
+        theme="github-light"
+        crossorigin="anonymous"
+        async>
+</script>
+<a class="u-url" href="/pytorch/flops/odml/2022/09/12/FLOPs-Model.html" hidden></a>
+</article>
+      </div>
+    </main><footer class="site-footer h-card">
+  <data class="u-url" href="/"></data>
+
+  <div class="wrapper">
+
+    <div class="footer-col-wrapper">
+      <div class="footer-col">
+        <p class="feed-subscribe">
+          <a href="/feed.xml">
+            <svg class="svg-icon orange">
+              <use xlink:href="/assets/minima-social-icons.svg#rss"></use>
+            </svg><span>Subscribe</span>
+          </a>
+        </p>
+      </div>
+      <div class="footer-col">
+        <p>blogs by me</p>
+      </div>
+    </div>
+
+    <div class="social-links"><ul class="social-media-list"><li><a rel="me" href="https://github.com/princep" target="_blank" title="princep"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#github"></use></svg></a></li><li><a rel="me" href="https://twitter.com/pp_spector" target="_blank" title="pp_spector"><svg class="svg-icon grey"><use xlink:href="/assets/minima-social-icons.svg#twitter"></use></svg></a></li></ul>
+</div>
+
+  </div>
+
+</footer>
+</body>
+
+</html>
