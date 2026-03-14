@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects - Prince</title>
+
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <link rel="stylesheet" href="../assets/styles.css" />
+  </head>
+
+  <body class="bg-gray-50 text-gray-900 w-full max-w-3xl mx-auto px-5 md:px-0 pb-10 font-sans">
+    <!-- Nav -->
+    <nav class="flex justify-between items-center py-6 border-b border-gray-300" data-aos="fade-down" data-aos-duration="800">
+      <h1 class="font-serif text-3xl font-bold tracking-tight">
+          <a href="../index.html" class="hover:text-blue-600 transition">Prince</a>
+      </h1>
+      <div class="flex gap-6 text-sm font-medium">
+        <a href="../index.html" class="hover:text-blue-600 transition">Home</a>
+        <a href="../blogs/blog.html" class="hover:text-blue-600 transition">Blogs</a>
+        <a href="projects.html" class="text-blue-600 transition">Projects</a>
+      </div>
+    </nav>
+
+    <!-- Resume Link -->
+    <section class="mt-12" data-aos="fade-up" data-aos-duration="1000">
+        <a href="../Software_Developer_Resume_Latest.pdf" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg font-medium hover:bg-blue-700 transition shadow-sm">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+            View My Resume
+        </a>
+    </section>
+
+    <!-- Projects List -->
+    <section class="mt-12 space-y-8" data-aos="fade-up" data-aos-delay="100" data-aos-duration="1000">
+      <h2 class="text-2xl font-semibold border-b border-gray-200 pb-2">Selected Projects</h2>
+
+      <div class="grid gap-6">
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">Leepi</h3>
+              <p class="text-gray-600 mb-4">Implemented a learning application for deaf and mute. The user learns the sign language by first observing the animation and performing it in front of camera for which the app gives real-time feedback by on-device processing of video stream. Google showcased the application to the world on Google I/O 2020.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="https://android-developers.googleblog.com/2020/06/dev-challenge-winners.html" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="external-link" class="w-4 h-4"></i> App Link
+                  </a>
+              </div>
+          </div>
+
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">Tottalk</h3>
+              <p class="text-gray-600 mb-4">Based on an offline device that aids toddlers in speech development by recognizing real-world objects and providing interactive pronunciation coaching on a Rubik Pi 3 with Edge Impulse.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="https://youtu.be/cMNJMP1_JuI" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="video" class="w-4 h-4"></i> Video Link
+                  </a>
+              </div>
+          </div>
+
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">NXEVOS</h3>
+              <p class="text-gray-600 mb-4">Created computer vision applications for Parking Slot management.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="https://nxevos.hackerearth.com" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="external-link" class="w-4 h-4"></i> Challenge Link
+                  </a>
+              </div>
+          </div>
+
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">Incode</h3>
+              <p class="text-gray-600 mb-4">App for passenger safety in cabs.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="https://www.hackerearth.com/challenges/hackathon/incode-2023-challenging-injustice/" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="external-link" class="w-4 h-4"></i> Challenge Link
+                  </a>
+              </div>
+          </div>
+
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">Ekatra</h3>
+              <p class="text-gray-600 mb-4">Data collection themed prototype using Google Cloud technologies.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="https://www.hackerearth.com/challenges/hackathon/cloud-fest-hackathon-2/" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="external-link" class="w-4 h-4"></i> Challenge Link
+                  </a>
+              </div>
+          </div>
+      </div>
+    </section>
+
+    <script>
+      lucide.createIcons();
+      AOS.init({ once: true });
+    </script>
+  </body>
+</html>

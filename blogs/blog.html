@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Blogs - Prince</title>
+
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
+    <link rel="stylesheet" href="../assets/styles.css" />
+  </head>
+
+  <body class="bg-gray-50 text-gray-900 w-full max-w-3xl mx-auto px-5 md:px-0 pb-10 font-sans">
+    <!-- Nav -->
+    <nav class="flex justify-between items-center py-6 border-b border-gray-300" data-aos="fade-down" data-aos-duration="800">
+      <h1 class="font-serif text-3xl font-bold tracking-tight">
+          <a href="../index.html" class="hover:text-blue-600 transition">Prince</a>
+      </h1>
+      <div class="flex gap-6 text-sm font-medium">
+        <a href="../index.html" class="hover:text-blue-600 transition">Home</a>
+        <a href="blog.html" class="text-blue-600 transition">Blogs</a>
+        <a href="../projects/projects.html" class="hover:text-blue-600 transition">Projects</a>
+      </div>
+    </nav>
+
+    <!-- Blogs List -->
+    <section class="mt-12 space-y-8" data-aos="fade-up" data-aos-duration="1000">
+      <h2 class="text-2xl font-semibold border-b border-gray-200 pb-2 mb-6">Articles & Notes</h2>
+
+      <div class="space-y-6" id="blog-list">
+        <!-- BLOG_LIST_INSERT_MARKER -->
+        
+        <div class="group border border-gray-200 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition">
+            <h3 class="text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-600 transition">
+                <a href="2022-09-12-FLOPs-Model.html">🧠 Flops Model</a>
+            </h3>
+            <p class="text-sm text-gray-500">2022-09-12</p>
+        </div>
+        
+        
+        <div class="group border border-gray-200 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition">
+            <h3 class="text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-600 transition">
+                <a href="2022-09-05-Pruning-Neural-Networks.html">✂️ Pruning Neural Networks</a>
+            </h3>
+            <p class="text-sm text-gray-500">2022-09-05</p>
+        </div>
+        
+        
+        <div class="group border border-gray-200 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition">
+            <h3 class="text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-600 transition">
+                <a href="2022-09-03-Image-Formats.html">🖼️ Image Formats</a>
+            </h3>
+            <p class="text-sm text-gray-500">2022-09-03</p>
+        </div>
+        
+      </div>
+        
+        
+        <div class="group border border-gray-200 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition">
+            <h3 class="text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-600 transition">
+                <a href="2022-09-05-Pruning-Neural-Networks.html">Pruning Neural Networks</a>
+            </h3>
+            <p class="text-sm text-gray-500">2022-09-05</p>
+        </div>
+        
+        
+        <div class="group border border-gray-200 bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition">
+            <h3 class="text-xl font-bold text-blue-900 mb-1 group-hover:text-blue-600 transition">
+                <a href="2022-09-03-Image-Formats.html">Image Formats</a>
+            </h3>
+            <p class="text-sm text-gray-500">2022-09-03</p>
+        </div>
+        
+      </div>
+    </section>
+
+    <script>
+      lucide.createIcons();
+      AOS.init({ once: true });
+    </script>
+  </body>
+</html>

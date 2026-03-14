@@ -1,19 +1,64 @@
----
-layout: home
-search_exclude: true
-image: images/logo.png
----
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Prince's Portfolio</title>
 
-Hello world!
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- AOS animations -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 
-I dabble my time in building computer vision models for devices like Android, IOS, [Jetson](https://developer.nvidia.com/embedded-computing) and Cloud.
+    <link rel="stylesheet" href="assets/styles.css" />
+  </head>
 
+  <body class="bg-gray-50 text-gray-900 w-full max-w-3xl mx-auto px-5 md:px-0 pb-10 font-sans">
+    <!-- Nav -->
+    <nav class="flex justify-between items-center py-6 border-b border-gray-300" data-aos="fade-down" data-aos-duration="800">
+      <h1 class="font-serif text-3xl font-bold tracking-tight">Prince</h1>
+      <div class="flex gap-6 text-sm font-medium">
+        <a href="index.html" class="text-blue-600 transition">Home</a>
+        <a href="blogs/blog.html" class="hover:text-blue-600 transition">Blogs</a>
+        <a href="projects/projects.html" class="hover:text-blue-600 transition">Projects</a>
+      </div>
+    </nav>
 
-This site is built with [fastpages](https://github.com/fastai/fastpages), An easy to use blogging platform with extra features for Jupyter Notebooks.
+    <!-- Intro -->
+    <section class="mt-12 space-y-6" data-aos="fade-up" data-aos-duration="1000">
+      <h2 class="text-2xl leading-snug">
+        Hello world! I’m <span class="font-semibold text-blue-600">Prince</span>.
+      </h2>
+      
+      <p class="text-lg text-gray-700 leading-relaxed">
+        I dabble my time in building computer vision models for devices like Android, iOS, Jetson, and the Cloud.
+        I am passionate about creating efficient, high-performance ML systems that work seamlessly in real-world environments.
+      </p>
+    </section>
 
-<!-- ![]({{site.baseurl}}/images/diagram.png "https://github.com/fastai/fastpages") -->
+    <!-- Links -->
+    <div class="flex flex-wrap gap-6 mt-10 items-center" data-aos="fade-up" data-aos-delay="200" data-aos-duration="1000">
+      <span class="text-sm text-gray-500 uppercase tracking-widest font-semibold">Connect</span>
 
-[fastpages](https://github.com/fastai/fastpages) automates the process of creating blog posts via GitHub Actions, so you don't have to fuss with conversion scripts.  A full list of features can be found on [GitHub](https://github.com/fastai/fastpages).  
+      <a href="https://github.com/princep" target="_blank" class="flex items-center gap-2 hover:text-blue-600 font-medium transition" aria-label="GitHub">
+        <i data-lucide="github" class="w-5 h-5"></i> GitHub
+      </a>
 
+      <!-- You can add your LinkedIn or Twitter URL below -->
+      <a href="#" class="flex items-center gap-2 hover:text-blue-600 font-medium transition" aria-label="LinkedIn">
+        <i data-lucide="linkedin" class="w-5 h-5"></i> LinkedIn
+      </a>
+      
+      <a href="mailto:your-email@example.com" class="flex items-center gap-2 hover:text-blue-600 font-medium transition" aria-label="Email">
+        <i data-lucide="mail" class="w-5 h-5"></i> Email
+      </a>
+    </div>
 
-# Posts
+    <script>
+      lucide.createIcons();
+      AOS.init({ once: true });
+    </script>
+  </body>
+</html>
