@@ -140,9 +140,10 @@ def main():
             # Since we could run this multiple times, we need a better replacement strategy.
             # Actually, using regex to replace everything inside the div is better.
             import re
+            # Replace the marker and everything up to the closing </div> of the section
             blog_index_content = re.sub(
-                r'<!-- BLOG_LIST_INSERT_MARKER -->.*?(?=</div)', 
-                '<!-- BLOG_LIST_INSERT_MARKER -->\n        ' + "\n        ".join(posts_list_html) + '\n      ', 
+                r'<!-- BLOG_LIST_INSERT_MARKER -->.*?(?=\n      </div)', 
+                '<!-- BLOG_LIST_INSERT_MARKER -->\n        ' + "\n        ".join(posts_list_html), 
                 blog_index_content, 
                 flags=re.DOTALL
             )
