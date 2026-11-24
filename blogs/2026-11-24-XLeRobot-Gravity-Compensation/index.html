@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XLeRobot Gravity Compensation - Prince</title>
+<meta name="description" content="Gravity compensation, impedance control and a two-arm compliant board hold on a MakerMods XLeRobot's SO-101 arms (Feetech STS3215 servos), in Rust on a Jetson Orin Nano.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --raised: #ffffff;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6;
+  --s1: #2a78d6;   /* left arm */
+  --s2: #eb6834;   /* right arm */
+  --s3: #1baf7a;   /* side-to-side tilt */
+  --band: rgba(137,135,129,0.10);
+  --good: #006300;
+  --warn-bg: #fff4e5;
+  --warn-ink: #7a4100;
+  --code-bg: #f0efec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --band: rgba(137,135,129,0.14); --good: #0ca30c;
+    --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --band: rgba(137,135,129,0.14); --good: #0ca30c;
+  --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: var(--accent); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
+.brand { font-weight: 650; letter-spacing: -0.01em; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+nav.toc a { color: var(--ink-2); text-decoration: none; }
+nav.toc a:hover { color: var(--ink); text-decoration: underline; }
+.theme-btn { border: 1px solid var(--border); background: var(--raised); color: var(--ink-2); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; letter-spacing: -0.02em; margin: 40px 0 12px; }
+h2 { font-size: 26px; letter-spacing: -0.01em; margin: 64px 0 8px; padding-top: 8px; }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p { margin: 0 0 14px; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 760px; }
+.small { font-size: 14px; color: var(--ink-2); }
+.muted { color: var(--muted); }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; line-height: 1.5; margin: 0 0 16px; }
+pre code { background: none; padding: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+video { width: 100%; height: auto; display: block; border-radius: 10px; background: #000; }
+.video-card { padding: 10px; }
+.caption { font-size: 14px; color: var(--ink-2); margin: 10px 4px 2px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 0; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.stat .v { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.35; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } nav.toc { display: none; } }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); font-size: 13px; }
+td.n, th.n { text-align: right; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 0 0 16px; }
+.note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; margin: 0 0 16px; }
+ul.tight { margin: 0 0 14px; padding-left: 22px; }
+ul.tight li { margin: 4px 0; }
+.eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; overflow-x: auto; white-space: pre; margin: 0 0 16px; line-height: 1.6; }
+/* charts */
+.chart-card { margin: 0 0 18px; }
+.chart-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 16px; margin-bottom: 6px; }
+.chart-title { font-weight: 600; font-size: 15.5px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-2); }
+.legend .sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend .sw.dash { background: repeating-linear-gradient(90deg, var(--ink-2) 0 4px, transparent 4px 7px) !important; }
+.legend .sw.band { height: 10px; background: var(--band); border: 1px solid var(--axis); }
+.chart { position: relative; width: 100%; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .tick text { fill: var(--muted); font-size: 11px; }
+.chart .grid line { stroke: var(--grid); stroke-width: 1; }
+.chart .baseline { stroke: var(--axis); stroke-width: 1; }
+.chart .series { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .ref { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 4 3; fill: none; }
+.chart .band { fill: var(--band); }
+.chart .band-label { fill: var(--muted); font-size: 11px; }
+.chart .dlabel { font-size: 12px; fill: var(--ink-2); font-weight: 600; }
+.chart .xhair { stroke: var(--axis); stroke-width: 1; }
+.chart .dot { stroke: var(--surface); stroke-width: 2; }
+.tip { position: absolute; pointer-events: none; background: var(--raised); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; font-size: 12.5px; box-shadow: 0 4px 14px rgba(0,0,0,0.12); white-space: nowrap; opacity: 0; transition: opacity .08s; z-index: 2; font-variant-numeric: tabular-nums; }
+.tip .k { color: var(--ink-2); }
+.tip .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+details.data { margin-top: 8px; font-size: 13.5px; }
+details.data summary { cursor: pointer; color: var(--ink-2); }
+details.data .table-wrap { margin-top: 8px; max-height: 280px; overflow-y: auto; }
+.hint { font-size: 12.5px; color: var(--muted); }
+/* diagram */
+.diagram svg { width: 100%; height: auto; display: block; }
+.diagram .box { fill: var(--raised); stroke: var(--axis); stroke-width: 1.2; }
+.diagram .boxhi { fill: var(--raised); stroke: var(--accent); stroke-width: 1.6; }
+.diagram text { fill: var(--ink); font-size: 13px; }
+.diagram .sub { fill: var(--ink-2); font-size: 11.5px; }
+.diagram .arrow { stroke: var(--ink-2); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.diagram .loop { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; marker-end: url(#ah2); }
+footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--border); font-size: 14px; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><a href="../../index.html" style="color:inherit;text-decoration:none">Prince</a> <span class="muted">/</span> <a href="../blog.html" style="color:inherit;text-decoration:none">Blogs</a> <span class="muted">/</span> <a href="../../projects/projects.html" style="color:inherit;text-decoration:none">Projects</a></div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#demo">Demo</a><a href="#robot">Robot</a><a href="#feasibility">Feasibility</a><a href="#how">How it works</a><a href="#gravity">Gravity</a><a href="#impedance">Impedance</a><a href="#board">Board hold</a><a href="#lessons">Lessons</a><a href="#run">Run it</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">Theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="small muted" style="margin:32px 0 -24px">2026-11-24</p>
+  <h1>Two robot arms holding a board level, soft to the touch</h1>
+  <p class="lede">Gravity compensation, impedance control and a two-arm compliant board hold on the XLeRobot's SO-101 arms. The arms use hobby-grade Feetech STS3215 servos, which have no torque mode. The control loop is written in Rust and runs on a Jetson Orin Nano. It's a port of NVIDIA's <a href="https://developer.nvidia.com/blog/make-a-robot-arm-feel-weightless-with-nvidia-holoscan-5/">"Make a robot arm feel weightless with Holoscan"</a> to much cheaper hardware.</p>
+  <p class="small">Code: <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">github.com/PrinceP/xlerobot-gravity-compensation</a> · Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">PrinceP/MakerMods-XLeRobot</a></p>
+
+  <section id="demo" aria-labelledby="demo-h">
+    <h2 id="demo-h" class="sr-only" style="margin-top:28px">Demo</h2>
+    <div class="card video-card">
+      <video id="demoVideo" controls playsinline preload="metadata" poster="media/board-demo-poster.jpg">
+        <source src="media/board-demo.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="media/board-demo.mp4">Download it</a>.
+      </video>
+      <p class="caption">Two-arm board hold, 134 s. Left: head camera with the live tilt and error overlay. Right: wrist cameras. The left wrist camera delivered no frames in this run, hence "no signal". The hold starts at 6.7 s. Pushes, lifts and tilts by hand run from about 24 s to 86 s, and the rest is hands-off. Click any chart below to jump the video to that moment.</p>
+    </div>
+    <div class="stats" id="stats">
+      <div class="stat"><div class="v" id="st-within">70%</div><div class="l">of the run with the board within 1° of level</div></div>
+      <div class="stat"><div class="v" id="st-side">0.40°</div><div class="l">median side-to-side tilt between the two grippers</div></div>
+      <div class="stat"><div class="v">250 Hz</div><div class="l">control loop per arm, p99 cycle 2.1 ms (budget 4 ms)</div></div>
+      <div class="stat"><div class="v">2·10⁻¹⁵</div><div class="l">N·m: the Rust gravity model against Pinocchio, 100 random poses per arm</div></div>
+    </div>
+  </section>
+
+  <section id="robot">
+    <h2>The robot</h2>
+    <p>Everything here runs on my <a href="https://github.com/PrinceP/MakerMods-XLeRobot">MakerMods XLeRobot build</a>. That's MakerMods' upgraded hardware for the <a href="https://github.com/Vector-Wangel/XLeRobot">XLeRobot</a> bimanual mobile robot: a redesigned 3D-printed structure on an IKEA RÅSKOG cart, with an omni-wheel base. It's drop-in compatible with <a href="https://github.com/huggingface/lerobot">LeRobot</a>. The compute is an <b>NVIDIA Jetson Orin Nano</b> (JetPack 6, L4T R36.5) mounted on the robot.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Part</th><th>Hardware</th><th>Bus</th></tr></thead>
+      <tbody>
+        <tr><td>Two follower arms (SO-101)</td><td>6 × Feetech STS3215-C018 each: 1:345 gearing, 12 V, magnetic encoder on the output (4096 steps per turn)</td><td>left arm IDs 1–6 on the left board, right arm IDs 1–6 on the right board</td></tr>
+        <tr><td>Head (pan / tilt)</td><td>2 × STS3215-C018, head camera</td><td>IDs 7–8, left board</td></tr>
+        <tr><td>Mobile base</td><td>3 × STS3215-C018 omni wheels</td><td>IDs 7–9, right board</td></tr>
+        <tr><td>Servo buses</td><td>2 × Waveshare serial bus driver boards, 1 Mbaud, USB to the Orin Nano</td><td><code>/dev/ttyACM0</code> left arm + head, <code>/dev/ttyACM1</code> right arm + base</td></tr>
+        <tr><td>Cameras</td><td>3 USB cameras: head, left wrist, right wrist</td><td>USB hubs on the top base</td></tr>
+        <tr><td>Model</td><td>MakerMods <code>xlerobot.urdf</code> (Apache-2.0) from that repo, used here for the gravity model and kinematics</td><td></td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Only the 12 V follower arms and grippers are controlled here. The head, the base and the 7.4 V leader arms aren't used by this project. The <code>gravcomp</code> binary checks which bus is which on startup, because the <code>ttyACM</code> numbers can swap: the right arm's board is the one where motor 9 (a base wheel) answers.</p>
+  </section>
+
+  <section id="feasibility">
+    <h2>Can LeRobot do this?</h2>
+    <p>NVIDIA's version uses a reBot arm with quasi-direct-drive motors that accept torque commands, and runs a Holoscan graph at 400 Hz. The XLeRobot is very different hardware, so the first question was whether the idea carries over at all. In short: yes, approximately.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>NVIDIA reBot setup</th><th>XLeRobot (SO-101 arms)</th><th>What that means</th></tr></thead>
+      <tbody>
+        <tr><td>QDD motors with a torque command</td><td>STS3215 geared position servos. There's <b>no current or torque mode</b>, but there is an open-loop <b>PWM mode</b> (duty cycle in <code>Goal_Time</code>, register 44)</td><td>PWM duty is the torque command. At low speed, torque is roughly proportional to duty cycle</td></tr>
+        <tr><td>Pinocchio RNEA on the URDF</td><td>MakerMods <code>xlerobot.urdf</code>. The gravity term, forward kinematics and Jacobian are reimplemented in Rust</td><td>They match Pinocchio to about 3·10⁻¹⁵ (<code>make check-model</code>)</td></tr>
+        <tr><td>400 Hz Holoscan graph</td><td>1 Mbaud serial bus: about 1.2 ms to read 6 motors, then a reply-less PWM write</td><td>250 Hz per arm. The serial bus is the limit, not the scheduler</td></tr>
+        <tr><td>Holoscan 5 SDK</td><td><b>Can't be installed on this Orin.</b> <code>holoscan 5.0</code> needs <code>holoscan-core-cu13</code>, and there's no wheel for JetPack 6 with CUDA 12.6</td><td>A fixed-rate Rust thread per arm instead, built on <code>rustypot</code> (the driver LeRobot itself uses)</td></tr>
+        <tr><td>Backdrivable actuators</td><td>About 1:345 gearing, with static friction of 45–105 PWM per joint, roughly the same size as gravity's pull on the joint</td><td>It feels <b>lighter</b>, not weightless. Friction is the limit on accuracy throughout</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>Each arm runs its own thread on its own serial bus. Every 4 ms the thread reads all joints in one transaction, works out the torque each joint needs, converts it to PWM, and writes all the PWM values in one reply-less transaction.</p>
+    <div class="card diagram" role="img" aria-label="Control loop: read joints, gravity model, impedance spring, friction compensation, PWM write, every 4 ms. Safety checks can switch the arm to hold at any point.">
+      <svg viewBox="0 0 1000 250" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+        </defs>
+        <rect class="box" x="10" y="40" width="170" height="78" rx="10"/>
+        <text x="95" y="70" text-anchor="middle">Read joints</text>
+        <text class="sub" x="95" y="90" text-anchor="middle">pos / speed / load</text>
+        <text class="sub" x="95" y="106" text-anchor="middle">1 sync read, ~1.2 ms</text>
+        <path class="arrow" d="M180 79 H218"/>
+        <rect class="boxhi" x="220" y="40" width="170" height="78" rx="10"/>
+        <text x="305" y="70" text-anchor="middle">Gravity model</text>
+        <text class="sub" x="305" y="90" text-anchor="middle">g(q) from the URDF</text>
+        <text class="sub" x="305" y="106" text-anchor="middle">= Pinocchio RNEA</text>
+        <path class="arrow" d="M390 79 H428"/>
+        <rect class="boxhi" x="430" y="40" width="170" height="78" rx="10"/>
+        <text x="515" y="70" text-anchor="middle">Impedance spring</text>
+        <text class="sub" x="515" y="90" text-anchor="middle">Jᵀ (K·e − D·v)</text>
+        <text class="sub" x="515" y="106" text-anchor="middle">optional goal via UDP</text>
+        <path class="arrow" d="M600 79 H638"/>
+        <rect class="box" x="640" y="40" width="160" height="78" rx="10"/>
+        <text x="720" y="70" text-anchor="middle">Friction comp.</text>
+        <text class="sub" x="720" y="90" text-anchor="middle">moving: along v</text>
+        <text class="sub" x="720" y="106" text-anchor="middle">at rest: toward goal</text>
+        <path class="arrow" d="M800 79 H838"/>
+        <rect class="box" x="840" y="40" width="150" height="78" rx="10"/>
+        <text x="915" y="70" text-anchor="middle">PWM write</text>
+        <text class="sub" x="915" y="90" text-anchor="middle">N·m × gain → duty</text>
+        <text class="sub" x="915" y="106" text-anchor="middle">1 sync write</text>
+        <path class="loop" d="M915 118 V160 Q915 172 903 172 H107 Q95 172 95 160 V122"/>
+        <text class="sub" x="505" y="190" text-anchor="middle">every 4 ms (250 Hz), one thread per arm</text>
+        <text class="sub" x="505" y="222" text-anchor="middle">Safety on every cycle: speed, joint range, temperature and voltage (3 bad readings in a row), bus errors, Ctrl+C or a crash → hold in position mode</text>
+      </svg>
+    </div>
+    <p class="small" style="margin-top:10px">Mapping to NVIDIA's operators: <code>JointStateSourceOp</code> is the sync read, <code>PinocchioGravityOp</code> is <code>ArmModel::gravity</code> plus the per-joint PWM gains, and <code>MotorCommandSinkOp</code> is the PWM write. Their watchdog becomes "every exit path holds the arm in position mode".</p>
+    <div class="eq">pwm = pwm_sign · ( pwm_per_nm · [ g(q) + Jᵀ(K·e − D·v) ] + friction ) + virtual walls near the joint limits
+q_urdf = sign · deg2rad((raw − mid) · 360/4095) + offset      (LeRobot degrees → URDF angles)</div>
+  </section>
+
+  <section id="gravity">
+    <h2>Gravity compensation</h2>
+    <p>The PWM sign, the PWM-per-N·m gain and the static friction of every joint were measured on the robot with <code>gravcomp identify</code>. It ramps PWM against gravity until the joint moves 0.7°, then back until it moves the other way. The joint travels about a degree in total. With all five joints compensated and nobody touching the arm, it held within <b>0.2° for 10 s</b>.</p>
+    <div class="grid2">
+      <div class="card chart-card">
+        <div class="chart-head"><div class="chart-title">Static (break-away) friction per joint</div>
+          <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>Left arm</span><span><span class="sw" style="background:var(--s2)"></span>Right arm</span></div></div>
+        <div class="chart" id="chFriction"></div>
+        <p class="hint">PWM units (of 1000). For comparison, gravity at the shoulder needs about 86–106 PWM.</p>
+      </div>
+      <div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Joint</th><th class="n">Left PWM/N·m</th><th class="n">Right PWM/N·m</th><th class="n">Left friction</th><th class="n">Right friction</th></tr></thead>
+          <tbody>
+            <tr><td>shoulder_pan</td><td class="n muted">no load</td><td class="n muted">no load</td><td class="n">50</td><td class="n">52</td></tr>
+            <tr><td>shoulder_lift</td><td class="n">157</td><td class="n">133</td><td class="n">94</td><td class="n">90</td></tr>
+            <tr><td>elbow_flex</td><td class="n">180</td><td class="n">145</td><td class="n">105</td><td class="n">80</td></tr>
+            <tr><td>wrist_flex</td><td class="n">166</td><td class="n">187</td><td class="n">55</td><td class="n">53</td></tr>
+            <tr><td>wrist_roll</td><td class="n muted">no load</td><td class="n muted">no load</td><td class="n">45</td><td class="n">59</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small">The datasheet suggested about 340 PWM per N·m. The measured gains are about half that, and the two arms differ by up to 20%. That's enough to tilt a shared board, so each arm uses its own values. <code>pwm_sign</code> is −1 on every joint: positive PWM <i>decreases</i> the raw position.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="impedance">
+    <h2>Impedance control</h2>
+    <p>This ports the tutorial's second example. A goal pulls the gripper toward it like a spring while gravity compensation keeps running, so you can still push the arm aside by hand. Goals arrive as JSON over UDP (left arm on port 5701, right on 5702): either joint angles, the same format an ACT-style LeRobot policy outputs, or a gripper-tip pose. The arm streams its state back at 50 Hz.</p>
+    <div class="eq">joint goal:  τ = Kq (q_d − q) − Dq q̇
+pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ] − Dq q̇     (tool = gripper tip, arm base frame)</div>
+    <p>The goal moves toward a new target at a limited speed and is clamped to the arm's reach, and the spring force is capped. A goal that isn't refreshed expires, and the arm falls back to plain gravity compensation. So a policy that crashes leaves a soft arm, not a stiff one.</p>
+    <h3>One arm holding a ping-pong ball: tuning</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Push</th><th>Soft (150 N/m, 0.8 N·m/rad)</th><th>Tuned (400 N/m, 4 N·m/rad, friction assist)</th></tr></thead>
+      <tbody>
+        <tr><td>Hands-off hold</td><td>2.2 mm, 0.4°</td><td><b>1 mm, 0.2°</b></td></tr>
+        <tr><td>Small push (9–16 mm)</td><td>back to 2–20 mm</td><td><b>back to 2–4 mm</b></td></tr>
+        <tr><td>Large push (84–138 mm)</td><td><b>stuck 30–66 mm away</b></td><td>back to 5.6 mm within 1.5 s</td></tr>
+        <tr><td>Orientation after a large push</td><td>5–8° off</td><td>7–8° off (a 5-joint arm can't hold all three rotations together with position)</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">The fix for large pushes was a <b>friction assist</b>. While a joint is still, part of its measured break-away friction is added in the direction the spring pulls, so the spring alone doesn't have to break through friction. It fades out near the goal.</p>
+  </section>
+
+  <section id="board">
+    <h2>Two-arm compliant board hold</h2>
+    <p>Both grippers clamp the 40 cm edge of a 40 × 30 × 1.4 cm foam board, about 6 cm in from each corner. The jaws close vertically, so the board lies flat between them. Each arm holds its gripper's position and orientation, gravity compensated and compliant. Three things made it work:</p>
+    <ul class="tight">
+      <li><b>Level first, in position mode.</b> The compliant hold can't make 2° corrections: turning the wrist also moves the tip, so shoulder, elbow and wrist would all have to move together, and all three are held by friction. Instead, before compliance starts, a Newton step on the model levels each gripper using the servos' own stiff position loop, to within <b>0.13°</b>.</li>
+      <li><b>Equalize the tip heights</b> (<code>tools/level_board.py --apply</code>) so the board is level side to side. Without a board in the grippers: 0.46° → 0.31°.</li>
+      <li><b>Soft push, firm return.</b> One fixed setting can't be both easy to push and accurate on return, because the same friction resists both. So the friction assist stays low (0.2) while the board is moving, and ramps to 0.9 once it has been still away from its goal for 0.5 s.</li>
+    </ul>
+
+    <div class="card chart-card">
+      <div class="chart-head"><div class="chart-title">Board tilt during the demo</div>
+        <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>Left gripper tilt</span><span><span class="sw" style="background:var(--s2)"></span>Right gripper tilt</span><span><span class="sw" style="background:var(--s3)"></span>Side-to-side</span><span><span class="sw dash"></span>1° line</span><span><span class="sw band"></span>Hand interaction</span></div></div>
+      <div class="chart" id="chTilt"></div>
+      <p class="hint">Degrees from level, against video time. Gripper tilt is the angle of each gripper's board normal from vertical. Side-to-side is the height difference between the two gripper tips, as an angle. The large peaks around 55–85 s are the board being tilted by hand; afterwards it settles back under 1°. Hover for values; click to jump the video.</p>
+      <details class="data"><summary>Data table (5-second medians)</summary><div class="table-wrap" id="tbTilt"></div></details>
+    </div>
+
+    <div class="card chart-card">
+      <div class="chart-head"><div class="chart-title">Gripper position error from the hold goal</div>
+        <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>Left arm</span><span><span class="sw" style="background:var(--s2)"></span>Right arm</span><span><span class="sw band"></span>Hand interaction</span></div></div>
+      <div class="chart" id="chErr"></div>
+      <p class="hint">mm. Peaks are the pushes. Tilting the board (until about 86 s) barely shows here, because it rotates the grippers in place. After the interaction, the right arm returns to about 2 mm. The left arm settles about 5 mm off: there, even the full return assist doesn't break through friction.</p>
+      <details class="data"><summary>Data table (5-second medians and maxima)</summary><div class="table-wrap" id="tbErr"></div></details>
+    </div>
+
+    <div class="card chart-card">
+      <div class="chart-head"><div class="chart-title">Left shoulder: PWM sent against its gravity part</div>
+        <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>PWM sent</span><span><span class="sw dash"></span>Gravity feedforward</span><span><span class="sw band"></span>Hand interaction</span></div></div>
+      <div class="chart" id="chPwm"></div>
+      <p class="hint">PWM units; positive lifts the arm. The dashed line is what gravity alone needs. The gap between the two is the spring, the friction compensation and the return assist working: it drops below gravity while you push the board down (compliance), and rises above it to bring the board back.</p>
+    </div>
+  </section>
+
+  <section id="lessons">
+    <h2>Hardware lessons</h2>
+    <p>Things the STS3215 servos (firmware 3.10) do that the documentation doesn't warn you about, found on the robot and handled in <code>src/servo.rs</code>:</p>
+    <ul class="tight">
+      <li><b>In PWM mode, the position reading drops the homing offset.</b> It jumped by +1164 steps on a wrist whose offset is 1163, and the change can lag the mode switch. A goal computed from one of those readings once swung a shoulder about 71° into the other arm. Now the shift is measured across the mode switch and subtracted, and a goal that disagrees with the computed one is never written.</li>
+      <li><b>Switching mode with torque off drops a loaded joint</b>, and the motor then stopped answering. Modes are now switched with torque on, without touching the EEPROM lock, so a power cycle always comes back in position mode.</li>
+      <li><b>A single corrupted reply</b> once read 62 °C on a 35 °C motor and stopped a run. Temperature and voltage faults now need 3 bad readings in a row.</li>
+      <li><b>Geared friction dominates.</b> Static friction is about the size of gravity's pull, so a soft spring has a dead band of several millimetres. Accuracy against compliance is the central trade-off, and the friction assist and "soft push, firm return" are the tools for it.</li>
+    </ul>
+  </section>
+
+  <section id="run">
+    <h2>Run it</h2>
+    <p>Clone <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">the repository</a>, set your Orin's address in a git-ignored <code>config.local.mk</code> (<code>ORIN_HOST = …</code>), and run everything from the laptop. The <code>Makefile</code> drives the Orin over ssh and builds the Rust binary on the Orin itself.</p>
+<pre><code>make test check-model                   # unit tests, plus the Rust model against Pinocchio
+make rust-orin build                    # once: user-level rustup on the Orin; then sync and build
+make probe                              # read-only: joint angles, model torque, load
+make identify ARM=left JOINT=elbow_flex # measure PWM sign, gain and friction for one joint
+make run ARM=left                       # gravity compensation (Ctrl+C holds the arm)
+make imp ARM=left HOLD=1 POSE=extended  # + impedance hold; goals: tools/send_goal.py
+make board-demo                         # two-arm board hold + 3-camera recording with tilt overlay
+make rest ARM=both                      # fold to rest, torque off</code></pre>
+    <p class="small">The repository layout: <code>src/servo.rs</code> (STS3215 PWM-mode access), <code>src/model.rs</code> (URDF gravity, FK, Jacobian), <code>src/control.rs</code> (the loop, safety, grasp, identification, levelling), <code>src/impedance.rs</code> (springs and the UDP goal/state interface), <code>config/xlerobot.toml</code> (all gains and limits), and <code>tools/</code> (Pinocchio check, goal client, board levelling, camera recorder, this site's data).</p>
+  </section>
+
+  <section id="next">
+    <h2>Limits and next steps</h2>
+    <ul class="tight">
+      <li><b>Orientation:</b> hold only the two rotations a 5-joint arm can reach, so they stop competing with position.</li>
+      <li><b>Exact return:</b> a slow, capped integral term would remove the last few millimetres; the left arm's 5 mm is the case to fix.</li>
+      <li><b>Left wrist camera:</b> it opened but delivered no frames during the recording. The likely suspect is USB bandwidth with three MJPG streams.</li>
+      <li><b>Holoscan:</b> on JetPack 7, the three NVIDIA operators map one-to-one onto the sync read, the gravity model and the PWM write. The serial bus would still cap the rate at about 300–400 Hz.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Code: <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">PrinceP/xlerobot-gravity-compensation</a>. Built on <a href="https://github.com/pollen-robotics/rustypot">rustypot</a>, the MakerMods XLeRobot URDF (Apache-2.0) and <a href="https://github.com/huggingface/lerobot">LeRobot</a> calibration. Inspired by NVIDIA's <a href="https://nvidia-holoscan.github.io/tutorials/rebot-gravity-compensation/">reBot gravity compensation tutorial</a>. Demo data: <code id="recName">20261124-194403-board</code>.
+  </footer>
+</main>
+
+<script>
+(function () {
+  // Theme toggle: OS default, then the viewer's choice (remembered when storage works).
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  });
+
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const niceTicks = (lo, hi, n) => {
+    const span = hi - lo || 1, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => span / s <= n) || raw;
+    const out = [];
+    for (let v = Math.floor(lo / step + 1e-9) * step; v <= hi + 1e-9; v += step) out.push(+v.toFixed(6));
+    if (out.length && out[out.length - 1] < hi - 1e-9) out.push(+(out[out.length - 1] + step).toFixed(6));
+    return out;
+  };
+  const video = document.getElementById("demoVideo");
+  const PUSH = [24, 86]; // seconds into the video: pushes (position error) and tilting (tilt) by hand
+  let X_MAX = 140;       // shared time axis for every chart (set from the recording length)
+
+  // Line chart: x = video time (s). series: [{name, color, t, y, dash}]
+  const redraws = [];
+  function lineChart(host, opts) {
+    redraws.push(() => { host.innerHTML = ""; drawLine(host, opts); });
+    drawLine(host, opts);
+  }
+  function drawLine(host, { series, yLabel, yMin, yMax, ref, band, fmt, height = 260 }) {
+    // Draw at the container's real pixel width so text stays 11-12px on phones too.
+    const W = Math.max(300, Math.round(host.clientWidth) || 960), narrow = W < 600;
+    const H = narrow ? 220 : height, m = { l: narrow ? 40 : 48, r: narrow ? 52 : 92, t: 24, b: 30 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": host.dataset.label || "" }, null);
+    host.appendChild(svg);
+    const xs = series[0].t, x0 = 0, x1 = X_MAX;
+    const ys = series.flatMap(s => s.y.filter(v => v != null));
+    const lo = yMin != null ? yMin : Math.min(0, ...ys), hi = yMax != null ? yMax : Math.max(...ys);
+    const yt = niceTicks(lo, hi, 5), y0 = Math.min(lo, yt[0]), y1 = Math.max(hi, yt[yt.length - 1]);
+    const X = t => m.l + (t - x0) / (x1 - x0) * (W - m.l - m.r);
+    const Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+    if (band) {
+      el("rect", { class: "band", x: X(band[0]), y: m.t, width: X(band[1]) - X(band[0]), height: H - m.t - m.b }, svg);
+      const bl = el("text", { class: "band-label", x: X(band[0]) + 6, y: m.t + 13 }, svg); bl.textContent = "hand interaction";
+    }
+    const g = el("g", { class: "grid" }, svg);
+    yt.forEach(v => {
+      el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, g);
+      const t = el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end" }, el("g", { class: "tick" }, svg)); t.textContent = fmt ? fmt(v) : v;
+    });
+    niceTicks(x0, x1, narrow ? 4 : 8).filter(v => v < x1).forEach(v => {
+      const t = el("text", { x: X(v), y: H - m.b + 18, "text-anchor": "middle" }, el("g", { class: "tick" }, svg)); t.textContent = v + " s";
+    });
+    el("line", { class: "baseline", x1: m.l, x2: W - m.r, y1: Y(Math.max(y0, Math.min(0, y1))), y2: Y(Math.max(y0, Math.min(0, y1))) }, svg);
+    if (ref != null) el("line", { class: "ref", x1: m.l, x2: W - m.r, y1: Y(ref), y2: Y(ref) }, svg);
+    const yl = el("text", { x: m.l - 8, y: m.t - 12, "text-anchor": "end", class: "band-label" }, svg); yl.textContent = yLabel || "";
+    // Series paths (gaps for nulls); direct labels at the line ends, kept in the lines' order.
+    const labels = [];
+    series.forEach(s => {
+      let d = "", pen = false;
+      s.t.forEach((t, i) => {
+        const v = s.y[i];
+        if (v == null) { pen = false; return; }
+        d += (pen ? "L" : "M") + X(t).toFixed(1) + " " + Y(v).toFixed(1);
+        pen = true;
+      });
+      const p = el("path", { class: s.dash ? "ref" : "series", d }, svg);
+      if (!s.dash) p.style.stroke = s.color;
+      let lastI = s.y.length - 1; while (lastI > 0 && s.y[lastI] == null) lastI--;
+      labels.push({ text: s.short || s.name, y: Y(s.y[lastI]) });
+    });
+    labels.sort((a, b) => a.y - b.y);
+    for (let i = 1; i < labels.length; i++) labels[i].y = Math.max(labels[i].y, labels[i - 1].y + 14);
+    const over = labels.length ? labels[labels.length - 1].y - (H - m.b - 4) : 0;
+    if (over > 0) labels.forEach(l => l.y -= over);
+    labels.forEach(l => { const t = el("text", { class: "dlabel", x: W - m.r + 8, y: l.y + 4 }, svg); t.textContent = l.text; });
+    // Hover layer: crosshair + tooltip; click seeks the video.
+    const xh = el("line", { class: "xhair", y1: m.t, y2: H - m.b, x1: -10, x2: -10, visibility: "hidden" }, svg);
+    const dots = series.map(s => { const c = el("circle", { class: "dot", r: 4.5, cx: -10, cy: -10, visibility: "hidden" }, svg); c.style.fill = s.dash ? "var(--ink-2)" : s.color; return c; });
+    const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent", style: "cursor:pointer" }, svg);
+    const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+    const nearestIn = (arr, t) => { let lo2 = 0, hi2 = arr.length - 1; while (hi2 - lo2 > 1) { const mid = (lo2 + hi2) >> 1; (arr[mid] < t ? lo2 = mid : hi2 = mid); } return Math.abs(arr[lo2] - t) < Math.abs(arr[hi2] - t) ? lo2 : hi2; };
+    const nearest = t => nearestIn(xs, t);
+    const toT = ev => { const r = svg.getBoundingClientRect(); const px = (ev.clientX - r.left) / r.width * W; return x0 + (px - m.l) / (W - m.l - m.r) * (x1 - x0); };
+    hit.addEventListener("pointermove", ev => {
+      const i = nearest(toT(ev)), t = xs[i];
+      xh.setAttribute("x1", X(t)); xh.setAttribute("x2", X(t)); xh.setAttribute("visibility", "visible");
+      let html = `<div class="k">${t.toFixed(1)} s into the video</div>`;
+      series.forEach((s, k) => {
+        const j = s.t === xs ? i : nearestIn(s.t, t), v = s.y[j];
+        if (v == null) { dots[k].setAttribute("visibility", "hidden"); return; }
+        dots[k].setAttribute("visibility", "visible"); dots[k].setAttribute("cx", X(s.t[j])); dots[k].setAttribute("cy", Y(v));
+        html += `<div><span class="sw" style="background:${s.dash ? "var(--ink-2)" : s.color}"></span>${s.name}: <b>${fmt ? fmt(v) : v}</b></div>`;
+      });
+      tip.innerHTML = html; tip.style.opacity = 1;
+      const r = svg.getBoundingClientRect(), hx = ev.clientX - r.left;
+      tip.style.left = Math.min(hx + 14, r.width - tip.offsetWidth - 4) + "px";
+      tip.style.top = "8px";
+    });
+    hit.addEventListener("pointerleave", () => { tip.style.opacity = 0; xh.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); });
+    hit.addEventListener("click", ev => {
+      const t = xs[nearest(toT(ev))];
+      if (video) { video.currentTime = t; video.scrollIntoView({ behavior: "smooth", block: "center" }); video.play().catch(() => {}); }
+    });
+  }
+
+  // Grouped bars: friction per joint, left vs right.
+  function barChart(host, opts) {
+    redraws.push(() => { host.innerHTML = ""; drawBars(host, opts); });
+    drawBars(host, opts);
+  }
+  function drawBars(host, { cats, groups }) {
+    const W = Math.max(300, Math.round(host.clientWidth) || 480), H = 240, m = { l: 40, r: 10, t: 14, b: 44 };
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Static friction per joint, left and right arm, in PWM units" }, null);
+    host.appendChild(svg);
+    const maxV = Math.max(...groups.flatMap(g => g.v)), yt = niceTicks(0, maxV, 4), y1 = yt[yt.length - 1];
+    const Y = v => H - m.b - v / y1 * (H - m.t - m.b);
+    const gg = el("g", { class: "grid" }, svg);
+    yt.forEach(v => { el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v) }, gg); const t = el("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, el("g", { class: "tick" }, svg)); t.textContent = v; });
+    el("line", { class: "baseline", x1: m.l, x2: W - m.r, y1: Y(0), y2: Y(0) }, svg);
+    const slot = (W - m.l - m.r) / cats.length, bw = Math.min(22, slot / 3.2);
+    const tip = document.createElement("div"); tip.className = "tip"; host.appendChild(tip);
+    cats.forEach((c, i) => {
+      const cx = m.l + slot * (i + 0.5);
+      groups.forEach((g, k) => {
+        const x = cx + (k - groups.length / 2) * (bw + 2) + 1, v = g.v[i], y = Y(v), h = Y(0) - y;
+        // 4px rounded data end, square at the baseline
+        const r = Math.min(4, h / 2);
+        const d = `M${x} ${Y(0)} V${y + r} Q${x} ${y} ${x + r} ${y} H${x + bw - r} Q${x + bw} ${y} ${x + bw} ${y + r} V${Y(0)} Z`;
+        const p = el("path", { d }, svg); p.style.fill = g.color;
+        const hit = el("rect", { x: x - 2, y: m.t, width: bw + 4, height: H - m.t - m.b, fill: "transparent" }, svg);
+        hit.addEventListener("pointerenter", () => {
+          tip.innerHTML = `<div class="k">${c}</div><div><span class="sw" style="background:${g.color}"></span>${g.name}: <b>${v} PWM</b></div>`;
+          tip.style.opacity = 1;
+          const r2 = svg.getBoundingClientRect();
+          tip.style.left = Math.min(x / W * r2.width + 10, r2.width - tip.offsetWidth - 4) + "px"; tip.style.top = (y / H * r2.height - 40) + "px";
+        });
+        hit.addEventListener("pointerleave", () => tip.style.opacity = 0);
+      });
+      const t = el("text", { x: cx, y: H - m.b + 16, "text-anchor": "middle" }, el("g", { class: "tick" }, svg));
+      const words = c.split("_");
+      if (W < 420) { t.textContent = words[0]; const t2 = el("text", { x: cx, y: H - m.b + 30, "text-anchor": "middle" }, el("g", { class: "tick" }, svg)); t2.textContent = words[1]; }
+      else t.textContent = words.join(" ");
+    });
+  }
+
+  function bucketTable(host, t, cols, agg) {
+    const rows = [];
+    for (let b = 0; b <= Math.max(...t); b += 5) {
+      const idx = t.map((v, i) => (v >= b && v < b + 5 ? i : -1)).filter(i => i >= 0);
+      if (!idx.length) continue;
+      rows.push([`${b}–${b + 5} s`, ...cols.flatMap(c => agg.map(a => a(idx.map(i => c.y[i]).filter(v => v != null))))]);
+    }
+    const head = ["Video time", ...cols.flatMap(c => agg.length > 1 ? [c.name + " median", c.name + " max"] : [c.name])];
+    host.innerHTML = `<table><thead><tr>${head.map((h, i) => `<th class="${i ? "n" : ""}">${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map((v, i) => `<td class="${i ? "n" : ""}">${v}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  }
+  const median = a => { if (!a.length) return "–"; const s = [...a].sort((x, y) => x - y); return s[s.length >> 1].toFixed(2); };
+  const maxOf = a => a.length ? Math.max(...a).toFixed(1) : "–";
+
+  const C = { s1: "var(--s1)", s2: "var(--s2)", s3: "var(--s3)" };
+
+  barChart(document.getElementById("chFriction"), {
+    cats: ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"],
+    groups: [{ name: "Left arm", color: C.s1, v: [50, 94, 105, 55, 45] }, { name: "Right arm", color: C.s2, v: [52, 90, 80, 53, 59] }],
+  });
+
+  let rz;
+  addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => redraws.forEach(f => f()), 150); });
+
+  fetch("data/board-demo.json").then(r => r.json()).then(d => {
+    const s = d.summary;
+    X_MAX = Math.ceil(s.video_s / 10) * 10;
+    document.getElementById("st-within").textContent = s.within_1deg_pct + "%";
+    document.getElementById("st-side").textContent = s.side_median_deg.toFixed(2) + "°";
+    document.getElementById("recName").textContent = s.recording;
+    const T = d.tilt, L = d.arms.left, R = d.arms.right;
+    const tilt = [
+      { name: "Left gripper tilt", short: "Left", color: C.s1, t: T.t, y: T.left },
+      { name: "Right gripper tilt", short: "Right", color: C.s2, t: T.t, y: T.right },
+      { name: "Side-to-side", short: "Side", color: C.s3, t: T.t, y: T.side },
+    ];
+    lineChart(document.getElementById("chTilt"), { series: tilt, yLabel: "deg", yMin: 0, ref: 1, band: PUSH, fmt: v => (+v).toFixed(1) + "°" });
+    bucketTable(document.getElementById("tbTilt"), T.t, tilt, [median]);
+    const err = [
+      { name: "Left arm", short: "Left", color: C.s1, t: L.t, y: L.err },
+      { name: "Right arm", short: "Right", color: C.s2, t: R.t, y: R.err },
+    ];
+    lineChart(document.getElementById("chErr"), { series: err, yLabel: "mm", yMin: 0, band: PUSH, fmt: v => (+v).toFixed(1) + " mm" });
+    // Right-arm samples are matched to the left-arm clock for the table.
+    const rAtL = L.t.map(t => { let k = 0; while (k < R.t.length - 1 && R.t[k + 1] <= t) k++; return R.err[k]; });
+    bucketTable(document.getElementById("tbErr"), L.t, [{ name: "Left", y: L.err }, { name: "Right", y: rAtL }], [median, maxOf]);
+    lineChart(document.getElementById("chPwm"), {
+      series: [
+        { name: "PWM sent", short: "Sent", color: C.s1, t: L.t, y: L.pwm },
+        { name: "Gravity feedforward", short: "Gravity", dash: true, t: L.t, y: L.grav },
+      ],
+      yLabel: "PWM", band: PUSH, fmt: v => Math.round(v),
+    });
+  }).catch(e => {
+    ["chTilt", "chErr", "chPwm"].forEach(id => { document.getElementById(id).innerHTML = '<p class="small">Chart data didn\'t load (open the page through a web server, e.g. GitHub Pages or <code>python3 -m http.server</code> in <code>docs/</code>).</p>'; });
+    console.error(e);
+  });
+})();
+</script>
+<style>.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}</style>
+</body>
+</html>
