@@ -147,6 +147,7 @@ footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--bor
   <p class="small muted" style="margin:32px 0 -24px">2026-11-24</p>
   <h1>Two robot arms holding a board level, soft to the touch</h1>
   <p class="lede">Gravity compensation, impedance control and a two-arm compliant board hold on the XLeRobot's SO-101 arms. The arms use hobby-grade Feetech STS3215 servos, which have no torque mode. The control loop is written in Rust and runs on a Jetson Orin Nano. It's a port of NVIDIA's <a href="https://developer.nvidia.com/blog/make-a-robot-arm-feel-weightless-with-nvidia-holoscan-5/">"Make a robot arm feel weightless with Holoscan"</a> to much cheaper hardware.</p>
+  <p class="small">Code: <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">github.com/PrinceP/xlerobot-gravity-compensation</a> · Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">PrinceP/MakerMods-XLeRobot</a></p>
 
   <section id="demo" aria-labelledby="demo-h">
     <h2 id="demo-h" class="sr-only" style="margin-top:28px">Demo</h2>
@@ -331,7 +332,7 @@ pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ]
 
   <section id="run">
     <h2>Run it</h2>
-    <p>From the laptop. The <code>Makefile</code> drives the Orin over ssh and builds the Rust binary on the Orin itself.</p>
+    <p>Clone <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">the repository</a>, set your Orin's address in a git-ignored <code>config.local.mk</code> (<code>ORIN_HOST = …</code>), and run everything from the laptop. The <code>Makefile</code> drives the Orin over ssh and builds the Rust binary on the Orin itself.</p>
 <pre><code>make test check-model                   # unit tests, plus the Rust model against Pinocchio
 make rust-orin build                    # once: user-level rustup on the Orin; then sync and build
 make probe                              # read-only: joint angles, model torque, load
@@ -354,7 +355,7 @@ make rest ARM=both                      # fold to rest, torque off</code></pre>
   </section>
 
   <footer>
-    Built on <a href="https://github.com/pollen-robotics/rustypot">rustypot</a>, the MakerMods XLeRobot URDF (Apache-2.0) and <a href="https://github.com/huggingface/lerobot">LeRobot</a> calibration. Inspired by NVIDIA's <a href="https://nvidia-holoscan.github.io/tutorials/rebot-gravity-compensation/">reBot gravity compensation tutorial</a>. Demo data: <code id="recName">20261124-194403-board</code>.
+    Code: <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">PrinceP/xlerobot-gravity-compensation</a>. Built on <a href="https://github.com/pollen-robotics/rustypot">rustypot</a>, the MakerMods XLeRobot URDF (Apache-2.0) and <a href="https://github.com/huggingface/lerobot">LeRobot</a> calibration. Inspired by NVIDIA's <a href="https://nvidia-holoscan.github.io/tutorials/rebot-gravity-compensation/">reBot gravity compensation tutorial</a>. Demo data: <code id="recName">20261124-194403-board</code>.
   </footer>
 </main>
 
