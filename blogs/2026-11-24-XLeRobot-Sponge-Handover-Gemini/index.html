@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XLeRobot Sponge Handover - Prince</title>
+<meta name="description" content="A bimanual sponge handover on a MakerMods XLeRobot: a MuJoCo model, sim-to-real, two open-loop real runs, and a closed loop driven by gemini-4-hydrogen on the Gemini API free tier. What worked, what didn't, and what we missed.">
+<meta property="og:title" content="XLeRobot sponge handover: what worked, what didn't, and what we missed">
+<meta property="og:description" content="MuJoCo model, sim-to-real, two open-loop real runs, and a closed loop driven by gemini-4-hydrogen (Gemini API free tier).">
+<meta property="og:image" content="https://princep.github.io/blogs/2026-11-24-XLeRobot-Sponge-Handover-Gemini/media/hydrogen_free_tier_run_demo_poster.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --raised: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6; --good: #006300; --bad: #b3261e;
+  --warn-bg: #fff4e5; --warn-ink: #7a4100; --code-bg: #f0efec;
+  --tag-bg: #d93a3a; --tag-ink: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --good: #0ca30c; --bad: #f28b82;
+    --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+    --tag-bg: #c43434;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --good: #0ca30c; --bad: #f28b82;
+  --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+  --tag-bg: #c43434;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-text-size-adjust: 100%; }
+a { color: var(--accent); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
+.brand { font-weight: 650; letter-spacing: -0.01em; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+nav.toc a { color: var(--ink-2); text-decoration: none; }
+nav.toc a:hover { color: var(--ink); text-decoration: underline; }
+.theme-btn { border: 1px solid var(--border); background: var(--raised); color: var(--ink-2); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; letter-spacing: -0.02em; margin: 40px 0 12px; }
+h2 { font-size: 26px; letter-spacing: -0.01em; margin: 64px 0 8px; padding-top: 8px; }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p { margin: 0 0 14px; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 760px; }
+.small { font-size: 14px; color: var(--ink-2); }
+.muted { color: var(--muted); }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; line-height: 1.5; margin: 0 0 16px; }
+pre code { background: none; padding: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+video, .card img { width: 100%; height: auto; display: block; border-radius: 10px; }
+video { background: #000; }
+.video-card { padding: 10px; }
+.caption { font-size: 14px; color: var(--ink-2); margin: 10px 4px 2px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 0; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.stat .v { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.35; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } nav.toc { display: none; } }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 760px) { .grid2, .grid3 { grid-template-columns: 1fr; } }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); font-size: 13px; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 0 0 16px; }
+.note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; margin: 0 0 16px; }
+.ok { color: var(--good); font-weight: 600; }
+.no { color: var(--bad); font-weight: 600; }
+.tag { display: inline-block; background: var(--tag-bg); color: var(--tag-ink); font-weight: 650; font-size: 13px; border-radius: 999px; padding: 3px 12px; letter-spacing: .01em; }
+ul.tight, ol.tight { margin: 0 0 14px; padding-left: 22px; }
+ul.tight li, ol.tight li { margin: 4px 0; }
+.eq { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; overflow-x: auto; white-space: pre; margin: 0 0 16px; line-height: 1.6; }
+footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--border); font-size: 14px; color: var(--ink-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><a href="../../index.html" style="color:inherit;text-decoration:none">Prince</a> <span class="muted">/</span> <a href="../blog.html" style="color:inherit;text-decoration:none">Blogs</a> <span class="muted">/</span> <a href="../../projects/projects.html" style="color:inherit;text-decoration:none">Projects</a></div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#demo">Demo</a><a href="#setup">Setup</a><a href="#sim">Simulation</a><a href="#sim2real">Sim to real</a><a href="#runs">Runs</a><a href="#failures">Failures</a><a href="#compare">Compared</a><a href="#hydrogen">Hydrogen</a><a href="#next">Next</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">Theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="small muted" style="margin:32px 0 -24px">2026-11-24 · Prince Patel, with Claude Code</p>
+  <h1>XLeRobot sponge handover: what worked, what didn't, and what we missed</h1>
+  <p class="lede">The goal was a bimanual handover on a MakerMods XLeRobot: the left arm picks a sponge from a desk, hands it to the right arm, and the right arm puts it down. I built a MuJoCo model of the robot, ran the task in simulation, derived the sim-to-real joint mapping, ran two open-loop attempts on the real robot, and then a closed loop driven by <code>gemini-4-hydrogen</code>. <b>None of the real attempts grasped the sponge yet.</b> This post records what was built, every failure with its cause, and what a comparable project that reports success did differently.</p>
+  <p class="small">Code: <a href="https://github.com/PrinceP/robotics-antigravity-plugin/tree/xlerobot/plugins/robotics/skills/xlerobot-sim">PrinceP/robotics-antigravity-plugin · <code>xlerobot-sim</code></a> (a fork of <a href="https://github.com/google-deepmind/robotics-antigravity-plugin">google-deepmind/robotics-antigravity-plugin</a>) · Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">PrinceP/MakerMods-XLeRobot</a></p>
+
+  <section id="demo" aria-labelledby="demo-h">
+    <h2 id="demo-h" class="sr-only">Demo</h2>
+    <div class="card video-card" style="margin-top:28px">
+      <video controls playsinline preload="metadata" poster="media/hydrogen_free_tier_run_demo_poster.jpg">
+        <source src="media/hydrogen_free_tier_run_demo.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="media/hydrogen_free_tier_run_demo.mp4">Download it</a>.
+      </video>
+      <p class="caption"><span class="tag">Gemini API free tier · 20 requests/day</span>&nbsp; The closed-loop run with <code>gemini-4-hydrogen</code>, 1 min. Head, left wrist and right wrist cameras; the model's observation, plan, action and result per turn; the measured arm state; the model's sponge point on the head view (yellow cross); a turn timeline. Waiting for the model plays at 12×, robot motion at 1.5×.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">7</div><div class="l">model turns executed on the real robot before the quota ran out</div></div>
+      <div class="stat"><div class="v">≤ 3 mm</div><div class="l">every commanded move, by the joint readings</div></div>
+      <div class="stat"><div class="v">6–119 s</div><div class="l">per model call during peak demand (HTTP 503 retries)</div></div>
+      <div class="stat"><div class="v">0</div><div class="l">grasps so far: the jaws closed a few cm past the sponge</div></div>
+    </div>
+  </section>
+
+  <section id="background">
+    <h2>Background</h2>
+    <p><a href="https://github.com/Vector-Wangel/XLeRobot">XLeRobot</a> is a low-cost mobile robot: two SO-101 arms on an IKEA RÅSKOG cart with a 3-omniwheel base and a pan/tilt head. Mine is the <a href="https://github.com/makermods-robotics/MakerMods-XLeRobot">MakerMods</a> upgrade (redesigned base, neck and mounts). Earlier I had both arms balancing ping-pong balls at the same time for about four minutes (<a href="https://github.com/PrinceP/xlerobot-pingpong-balance">xlerobot-pingpong-balance</a>) and <a href="../2026-11-24-XLeRobot-Gravity-Compensation/">holding a board level with gravity compensation</a>.</p>
+    <p>This time I used Google DeepMind's <a href="https://github.com/google-deepmind/robotics-antigravity-plugin">robotics-antigravity-plugin</a>: agent skills for robot bring-up, perception, planning and sim-to-real, built around MuJoCo. It has no XLeRobot support, so I added an <code>xlerobot-sim</code> skill on a fork (kept up to date with upstream <code>main</code>; currently plugin version 0.1.12). Two posts shaped this work: Rohan Sinha's <a href="https://x.com/RohanSinhaSU/status/2123478548757512198">demo of Gemini 4 Hydrogen acting directly as a reactive policy for a robot arm</a>, and Shuangyu Xie's <a href="https://x.com/Shuangyu0_0Xie/status/2112947017236258997">open-source Gemini 4 Argon harness</a> (<a href="https://ehehee.github.io/blog/open-gemini-harness/">write-up</a>), which reports a zero-shot bimanual handover on two YAM arms.</p>
+  </section>
+
+  <section id="setup">
+    <h2>The setup</h2>
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="card video-card"><img src="media/setup_front.jpg" alt="The XLeRobot from the front, both arms folded above the desk" loading="lazy"></div>
+      <div class="card video-card"><img src="media/setup_side.jpg" alt="The XLeRobot from the side, the desk flush with the top basket" loading="lazy"></div>
+      <div class="card video-card"><img src="media/setup_arms_desk.jpg" alt="Both SO-101 arms over the desk with the yellow sponge" loading="lazy"></div>
+    </div>
+    <ul class="tight">
+      <li><b>Robot:</b> MakerMods XLeRobot, two SO-101 arms (5 joints + gripper each, Feetech STS3215 servos, soft TPU jaws), head with two servos.</li>
+      <li><b>Cameras:</b> three Innomaker 1080p wide-angle USB cameras (head and both wrists) on one USB 2.0 hub, read at 640×480 MJPG (the right wrist at 640×360: at 640×480 it gets no bandwidth next to the other two).</li>
+      <li><b>Computer:</b> Jetson Orin on the robot, LeRobot 0.7.0. The laptop runs the simulation.</li>
+      <li><b>Scene:</b> desk top at 0.75 m, its front edge flush with the robot's top basket. Sponge 10 × 6 × 2 cm, long side pointing at the robot, near edge 8 cm in, centre 10 cm left of the robot's centre line. Target: the same distance in, 10 cm right of centre.</li>
+    </ul>
+  </section>
+
+  <section id="sim">
+    <h2>Building the simulation</h2>
+    <p>There was no MuJoCo model of the MakerMods version. The MakerMods GitHub repo has only a Bambu Studio print project (95 parts laid out on print plates, no assembly). The <a href="https://tnkr.ai/ryans-workspace/xlerobot">tnkr.ai project page</a> has an interactive 3D viewer, and its page data points to a complete URDF package (<code>makermods-xlerobot-20260930</code>, Apache-2.0): the URDF, 28 meshes, and a licence. Two of its file types turned out to be placeholders: the jaw <code>.ply</code> collision meshes are S3 "Access Denied" pages.</p>
+    <p><a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/plugins/robotics/skills/xlerobot-sim/scripts/build_xlerobot_mjcf.py"><code>build_xlerobot_mjcf.py</code></a> turns the URDF into a MuJoCo model and fixes what the URDF gets wrong:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Issue in the URDF</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>74.9 kg in the cart body, 4.35 kg neck, 3.2 kg head</td><td>12 kg total (XLeRobot docs, v0.3); neck 0.6 kg, head 0.35 kg, cart + base the rest</td></tr>
+        <tr><td>Jaw collision meshes missing (the broken <code>.ply</code>)</td><td>Thin jaw contact pads, parallel at a 0.9 rad opening, TPU-like friction</td></tr>
+        <tr><td>No servo model</td><td>STS3215: armature 0.028, damping 0.6, kp 998, position actuators named like LeRobot's XLeRobot motors</td></tr>
+        <tr><td>Gripper at full servo force</td><td>Limited to 0.5 N·m, like the real load-limited squeeze</td></tr>
+        <tr><td>Camera links only</td><td><code>head_camera</code>, <code>wrist_camera_left/right</code>; wrist cameras along the gripper, sideways image like the real ones</td></tr>
+        <tr><td>Cart convex hull would be a solid block</td><td>Cart visual only, plus invisible trays on the three basket floors</td></tr>
+      </tbody>
+    </table></div>
+    <p>It passes the plugin's static <code>mujoco-audit</code>, every servo joint tracks to &lt; 0.001 rad, and the base drives and turns.</p>
+    <div class="grid2">
+      <div class="card video-card">
+        <video controls playsinline preload="metadata" muted loop><source src="media/sim_drive_look_wave.mp4" type="video/mp4"></video>
+        <p class="caption">The model drives, turns, looks around and waves.</p>
+      </div>
+      <div class="card video-card">
+        <img src="media/sim_left_pick_present.gif" alt="Simulation: the left arm picks the sponge and lifts it" loading="lazy">
+        <p class="caption">Simulation: the left arm picks and lifts the sponge (with the grasp attach, see failure 4).</p>
+      </div>
+    </div>
+    <div class="card video-card" style="margin-top:16px">
+      <img src="media/sim_cameras_preview.jpg" alt="Simulation cameras: overview, head camera, left and right wrist cameras" loading="lazy">
+      <p class="caption">Simulation cameras: overview, head camera, wrist cameras.</p>
+    </div>
+  </section>
+
+  <section id="sim2real">
+    <h2>From sim to real</h2>
+    <p>The MakerMods URDF uses the older SO-101 zero (arm stretched forward, radians); LeRobot reports calibrated degrees (0 = middle pose). I derived the mapping by matching the URDF against LeRobot's <code>so101_new_calib</code> model in many random poses until every link pointed the same way (0.00° error):</p>
+    <div class="eq">real_deg = degrees((sim_rad - OFFSET) / SIGN)
+SIGN   = [+1, -1, +1, +1, -1]     # shoulder_pan, shoulder_lift, elbow_flex, wrist_flex, wrist_roll
+OFFSET = [0, pi/2, pi/2, 0, 0]    # same for both arms</div>
+    <p>On the real robot I checked the wrist roll direction: +15° of real roll rotated the left wrist image by −14.4°, a pure roll.</p>
+    <p>The open-loop runs work in two steps:</p>
+    <ol class="tight">
+      <li><a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_handover_sim.py"><code>xlerobot_handover_sim.py</code></a> plans in simulation: head camera → yellow-blob detector → ray onto the desk plane for the sponge position; inverse kinematics (damped least squares over the 5 arm joints, several seeds) for every pose; straight-line moves for approach, descent and lift, solved point by point on one IK solution. It exports the joint plan to JSON.</li>
+      <li><a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_real_plan.py"><code>xlerobot_real_plan.py</code></a> runs that plan on the robot: converts to calibrated degrees, checks every target against the calibrated joint range (<code>--dry</code>), moves slowly with sag compensation, squeezes by load, stops on motor temperature, records all three cameras, and pauses at checkpoints so a person confirms alignment before any contact.</li>
+    </ol>
+  </section>
+
+  <section id="runs">
+    <h2>Runs</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>#</th><th>Where</th><th>What happened</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td>S1</td><td>sim, long side along the desk edge</td><td>Head-camera estimate 3 mm off, IK 2 mm; but the tilted jaws open in a near-vertical plane and cannot straddle the sponge, and the jaws had no collision</td><td class="no">✗</td></tr>
+        <tr><td>S2</td><td>sim, sponge turned 90°</td><td>Perception 20 mm off (side face biases the blob), jaw lands on the sponge</td><td class="no">✗</td></tr>
+        <tr><td>S3</td><td>sim, true position</td><td>Jaws close beside / on top of the sponge; full-force wedge squeezes it out</td><td class="no">✗</td></tr>
+        <tr><td>S4</td><td>sim, grasp attach</td><td>Left picks, lifts and presents ✓; right's jaws never close on it (45° skew)</td><td class="no">✗</td></tr>
+        <tr><td>R1</td><td>real, 20 Nov 14:26</td><td>Ready ✓, hover ✓ (confirmed by eye), descent ✓ (joints within 0.5°); squeeze stopped after 9° (load spike at start of motion)</td><td class="no">✗</td></tr>
+        <tr><td>R2</td><td>real, 20 Nov 14:30</td><td>Squeeze fixed; descent ended with the jaws ~12 cm <b>above</b> the sponge; jaws closed on air (91°, load 5 %)</td><td class="no">✗</td></tr>
+        <tr><td>R3</td><td>real, 22 Nov, closed loop</td><td><code>gemini-4-hydrogen</code>, 7 turns: hover, three nudges, close → empty; stopped by the free-tier quota (<a href="#hydrogen">below</a>)</td><td class="no">✗</td></tr>
+      </tbody>
+    </table></div>
+    <div class="grid2">
+      <div class="card video-card">
+        <img src="media/real_run2_phone_timelapse.gif" alt="Real robot, second run, timelapse: the left arm stops high above the sponge" loading="lazy">
+        <p class="caption">R2 timelapse: the left arm reaches over the sponge but stops about 12 cm above it.</p>
+      </div>
+      <div class="card video-card">
+        <video controls playsinline preload="metadata"><source src="media/real_run2_robot_cams_8x.mp4" type="video/mp4"></video>
+        <p class="caption">R2 from the robot's cameras, 8× (head | left wrist | right wrist; the right wrist was black at 640×480).</p>
+      </div>
+    </div>
+    <p class="small" style="margin-top:12px">More video: R1 <a href="media/real_run1_phone_2x.mp4">phone, 2×</a>, <a href="media/real_run1_robot_cams_4x.mp4">robot cameras, 4×</a> · R2 <a href="media/real_run2a_phone_2x.mp4">phone, 2×</a>, <a href="media/real_run2b_phone.mp4">phone</a>, <a href="media/real_run2c_phone.mp4">phone</a> · sim <a href="media/sim_handover_attach_run.mp4">handover with grasp attach</a> · sim failures <a href="https://github.com/PrinceP/robotics-antigravity-plugin/tree/xlerobot/plugins/robotics/skills/xlerobot-sim/assets/videos/failures">01–04</a>.</p>
+  </section>
+
+  <section id="failures">
+    <h2>Failures, and what each one taught us</h2>
+    <h3>1. The model was not our robot (R2, the 12 cm miss)</h3>
+    <p>The arms reached their joint targets within 0.2°, yet the jaws stopped 12 cm above the sponge. Our arm bases sit at 0.86 m; MakerMods' URDF has them at 0.744 m, 11.6 cm lower. Every target was computed for a robot that does not exist. <code>--arm-raise 0.116</code> now models our build; with the arms higher the sponge sits at the edge of reach, so the grasp now uses a 50–55° tilt at 1.5 cm above the desk.</p>
+    <h3>2. A squeeze that stops at the first load spike (R1)</h3>
+    <p>The gripper's load reading jumps just from starting to move. Closing until "load &gt; threshold" stopped after 9°. Fix (as in my ping-pong code): contact only when the load is high <i>and</i> the jaw has stopped moving.</p>
+    <h3>3. Five joints cannot hand over a flat 6 cm sponge cleanly (S4)</h3>
+    <p>Each SO-101 has 5 arm joints, so the gripper always points along its own arm's heading, and 11 cm into the desk it must tilt ~60° (the wrist would need to be 0.31 m from the shoulder to point straight down; upper arm + forearm are 0.25 m). A sponge gripped across its width lies along the holder's heading, and at any point both arms reach, their headings differ by ~45°. The receiving grasp is skewed ~45°: the sponge is ~8 cm diagonally, the jaws open ~7.5 cm.</p>
+    <h3>4. Rigid simulation cannot grip a sponge like real jaws do (S1–S3)</h3>
+    <p>MuJoCo bodies are rigid; a rigid box between thin rigid pads only touches at edges and gets wedged out, and the moving jaw's arc comes down on the sponge's top edge. Real sponge squashes and TPU jaws flex. I used a grasp attach (a weld that engages only when both jaw pads touch the object) to check the task sequence, and say so.</p>
+    <h3>5. Perception that sees the side face (S2)</h3>
+    <p>From behind, the blob includes the sponge's near side, which biased the centre by ~20 mm. Using the blob's far edge (top-face height) and near edge (desk height) helped; on the real robot I used the tape-measured position.</p>
+  </section>
+
+  <section id="compare">
+    <h2>Compared with the Open Gemini 4 Argon harness: what we missed</h2>
+    <p>That project reports "Gemini handed over and placed a tape roll and a metal spring clamp with no task-specific training or demonstrations". Its own log is more careful: six development runs, one clean success (metal clamp, 18 model turns, 8 min 23 s), one success after a drop and re-pick (tape), failures on a fan and a plastic clamp, three sessions ended by hardware faults, and "case studies rather than a controlled success-rate benchmark". It is a real result, and the differences explain most of our failures:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Open Gemini harness</th><th>This attempt</th></tr></thead>
+      <tbody>
+        <tr><td>Arms</td><td>two YAM, 6 joints each</td><td>two SO-101, <b>5 joints</b> each</td></tr>
+        <tr><td>Robot model</td><td>their bench reconstructed in sim, planning model agrees with the arms to 0.04 mm</td><td>MakerMods' URDF, <b>not our build</b> (arms 11.6 cm off), since corrected</td></tr>
+        <tr><td>Cameras</td><td>calibrated: overhead ZED Mini (stereo depth) + wrist D405, extrinsics to the arm base</td><td>uncalibrated wide-angle USB; position by tape measure</td></tr>
+        <tr><td>Loop</td><td>re-observe after <b>every</b> segment; Gemini picks the next step</td><td>R1–R2: fixed plan, open loop. R3: closed loop with Hydrogen</td></tr>
+        <tr><td>Grasp</td><td>"close until contact", a holding flag checked on both arms after every step</td><td>load + stall squeeze, holding flag (R3)</td></tr>
+        <tr><td>Handover rule</td><td>receiver closes → observe → giver opens alone → recheck holding</td><td>same rule in the R3 prompt (never reached)</td></tr>
+        <tr><td>Checking</td><td>human approval of each segment in a 3D preview; optional MuJoCo collision checker</td><td>MuJoCo IK, desk and collision checks before every move (R3)</td></tr>
+        <tr><td>Objects</td><td>tape roll, metal clamp (thin fan and plastic clamp failed)</td><td>flat, soft 6 cm sponge</td></tr>
+      </tbody>
+    </table></div>
+    <p>What we missed, in order of impact:</p>
+    <ol class="tight">
+      <li><b>Model the actual rig before planning.</b> Measure mount heights, base, desk and cameras on the real robot and fit the sim to them. Our 12 cm miss was a single unmeasured number.</li>
+      <li><b>Calibrate the cameras to the arms</b> (hand-eye), so targets come from what the robot sees, not from a tape measure.</li>
+      <li><b>Close the loop between segments.</b> Re-observe after every move and correct; check "holding" on both arms before the giver lets go.</li>
+      <li><b>Pick the object and grasp for the arm.</b> With 5 joints the handover must be designed around the heading skew: a narrower object, a pose where both headings agree, or a re-grasp.</li>
+    </ol>
+  </section>
+
+  <section id="hydrogen">
+    <h2>Closed loop with gemini-4-hydrogen (22 Nov) <span class="tag" style="vertical-align:middle">free tier</span></h2>
+    <p>I ported the idea of the open harness to XLeRobot in <a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_gemini_loop.py"><code>xlerobot_gemini_loop.py</code></a> and ran it on the real robot with <code>gemini-4-hydrogen</code>, called directly through the Gemini API. Each turn the model gets the head and both wrist images plus the measured arm state (tool position from forward kinematics, gripper opening and load, a holding flag) and picks <b>one</b> skill: <code>move_to</code>, <code>nudge</code> (≤ 3 cm), <code>roll</code>, <code>open</code>, <code>close</code>, <code>fold</code>, <code>look</code> or <code>done</code>.</p>
+    <p>Before any motion the harness solves IK in the <code>xlerobot-sim</code> model (<code>--arm-raise 0.116</code>) and refuses targets that miss by more than 8 mm, leave the workspace, put a jaw tip into the desk, add a MuJoCo contact (arm–arm, arm–desk, arm–body) along the move, or leave the calibrated joint range. Refusals go back to the model.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th class="n">Turn</th><th class="n">Model</th><th>Hydrogen chose</th><th>Result</th></tr></thead>
+      <tbody>
+        <tr><td class="n">1</td><td class="n">119 s</td><td>open left gripper 75 %</td><td>opened (but stalled on its end stop, see below)</td></tr>
+        <tr><td class="n">2</td><td class="n">54 s</td><td><code>move_to</code> left, hover 8 cm above the sponge prior, tilt 55°</td><td class="ok">reached, 3 mm off</td></tr>
+        <tr><td class="n">3</td><td class="n">8 s</td><td>nudge back 3 cm, left 2 cm, down 2 cm</td><td class="ok">reached, 1 mm off</td></tr>
+        <tr><td class="n">4</td><td class="n">19 s</td><td>nudge left 2 cm, down 2 cm</td><td class="ok">reached, 1 mm off</td></tr>
+        <tr><td class="n">5</td><td class="n">13 s</td><td>nudge down 2.5 cm (grasp height, 1.5 cm above the desk)</td><td class="ok">reached, 1 mm off</td></tr>
+        <tr><td class="n">6</td><td class="n">29 s</td><td>close</td><td class="no">empty: the jaws closed fully, load 6 %</td></tr>
+        <tr><td class="n">7</td><td class="n">6 s</td><td>lift 3 cm to re-align ("tool point too far forward / right")</td><td class="ok">reached</td></tr>
+        <tr><td class="n">8</td><td class="n">–</td><td>–</td><td class="no">HTTP 429: free-tier daily quota used up; the run stopped, the arm held its pose</td></tr>
+      </tbody>
+    </table></div>
+    <h3>What we learned</h3>
+    <ol class="tight">
+      <li><b>The loop works and every move landed where it was sent</b> (≤ 3 mm by the joint readings), and the model's corrections went the right way. The model is slow under load: 6–119 s per turn, with HTTP 503 "high demand" retries. On the free tier during peak demand it behaves like a slow planner, not a reactive policy.</li>
+      <li><b>The grasp missed because the jaws went past the sponge.</b> In the head view the sponge sat under the wrist, a few cm closer to the robot than the jaws. The wrist camera looks along the gripper and cannot see under its own jaws, so the model read a yellow sliver at the image edge as "between the jaws". Next: each turn, have the model point at the sponge <i>and</i> the jaw tips in the head image and report the offset between them.</li>
+      <li><b>The free tier cannot finish this task.</b> <code>gemini-4-hydrogen</code> allows 20 requests per day on the free tier, and retries count too. A pick, handover and place needs about 30–45 turns, so a full run needs billing on the key's project.</li>
+      <li><b>Opening the gripper to 75 % stalled the servo on its end stop</b> (99 % load until the close, about 3 minutes; it stayed at 35 °C). The harness now opens to at most 65 % and backs off if the load stays high.</li>
+    </ol>
+    <p class="small">The demo video is rendered from the run's logs with <a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_gemini_demo_video.py"><code>xlerobot_gemini_demo_video.py</code></a>.</p>
+  </section>
+
+  <section id="next">
+    <h2>What is next</h2>
+    <ol class="tight">
+      <li><b>Head-camera calibration</b> to both arm bases, and the model pointing at both the sponge and the jaw tips in the head image each turn, so it corrects by a measured offset.</li>
+      <li><b>Billing on the Gemini key</b> (a full run needs about 30–45 model calls; the free tier allows 20 per day).</li>
+      <li><b>Single-arm pick and place</b> of a rigid, narrow object (3–4 cm).</li>
+      <li><b>Handover</b> with a holding check from gripper position and load on both arms: receiver closes → observe → giver opens only after the receiver is confirmed → check again.</li>
+      <li><b>The sponge</b> last, with a deformable sponge in simulation (MuJoCo <code>flexcomp</code>) to replace the grasp attach.</li>
+    </ol>
+  </section>
+
+  <section id="run">
+    <h2>Reproduce</h2>
+    <pre><code># laptop: model and plan
+uv run plugins/robotics/skills/xlerobot-sim/scripts/build_xlerobot_mjcf.py
+MUJOCO_GL=egl uv run plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_handover_sim.py --truth --arm-raise 0.116 --export plan.json
+# robot (XLeRobot host stopped; calibration split per arm): check, then run with checkpoints
+python xlerobot_real_plan.py plan.json --dry
+python xlerobot_real_plan.py plan.json
+
+# closed loop with gemini-4-hydrogen (key in GEMINI_API_KEY or ~/.config/gemini/api_key, never in the repo)
+python xlerobot_gemini_loop.py --dry        # one model turn, no motion
+python xlerobot_gemini_loop.py              # run; Ctrl+C stops, torque stays on
+# laptop: demo video from a copied log folder (rsync -a keeps the file times the timeline uses)
+uv run plugins/robotics/skills/xlerobot-sim/scripts/xlerobot_gemini_demo_video.py logs/gemini_&lt;stamp&gt; --out demo.mp4</code></pre>
+  </section>
+
+  <footer>
+    Credits: <a href="https://github.com/google-deepmind/robotics-antigravity-plugin">google-deepmind/robotics-antigravity-plugin</a> (Apache-2.0), which the fork extends.
+    Rohan Sinha's <a href="https://x.com/RohanSinhaSU/status/2123478548757512198">Gemini 4 Hydrogen robot demo</a> and Shuangyu Xie's <a href="https://x.com/Shuangyu0_0Xie/status/2112947017236258997">Open Gemini 4 Argon Robot Harness</a> (<a href="https://ehehee.github.io/blog/open-gemini-harness/">write-up</a>).
+    MakerMods XLeRobot URDF and meshes (Apache-2.0), published with the <a href="https://tnkr.ai/ryans-workspace/xlerobot">MakerMods XLeRobot project on tnkr.ai</a>; <a href="https://github.com/makermods-robotics/MakerMods-XLeRobot">MakerMods-XLeRobot</a> print files (MIT).
+    <a href="https://github.com/Vector-Wangel/XLeRobot">XLeRobot</a> (Apache-2.0) and its <a href="https://xlerobot.readthedocs.io">documentation</a>.
+    SO-101 by <a href="https://github.com/TheRobotStudio/SO-ARM100">TheRobotStudio</a> (Apache-2.0); <a href="https://github.com/huggingface/lerobot">LeRobot</a>.
+    Full write-up with code links: <a href="https://github.com/PrinceP/robotics-antigravity-plugin/blob/xlerobot/blog/xlerobot-sponge-handover/index.md">blog/xlerobot-sponge-handover</a>.
+  </footer>
+</main>
+
+<script>
+(function () {
+  // Theme toggle: OS default, then the viewer's choice (remembered when storage works).
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
