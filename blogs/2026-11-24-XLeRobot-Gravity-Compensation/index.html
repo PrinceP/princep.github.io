@@ -144,7 +144,7 @@ footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--bor
 </header>
 
 <main class="wrap">
-  <p class="small muted" style="margin:32px 0 -24px">2026-11-24</p>
+  <p class="small muted" style="margin:32px 0 -24px">2026-11-24 · updated 2026-11-25</p>
   <h1>Two robot arms holding a board level, soft to the touch</h1>
   <p class="lede">Gravity compensation, impedance control and a two-arm compliant board hold on the XLeRobot's SO-101 arms. The arms use hobby-grade Feetech STS3215 servos, which have no torque mode. The control loop is written in Rust and runs on a Jetson Orin Nano. It's a port of NVIDIA's <a href="https://developer.nvidia.com/blog/make-a-robot-arm-feel-weightless-with-nvidia-holoscan-5/">"Make a robot arm feel weightless with Holoscan"</a> to much cheaper hardware.</p>
   <p class="small">Code: <a href="https://github.com/PrinceP/xlerobot-gravity-compensation">github.com/PrinceP/xlerobot-gravity-compensation</a> · Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">PrinceP/MakerMods-XLeRobot</a></p>
@@ -156,7 +156,7 @@ footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--bor
         <source src="media/board-demo.mp4" type="video/mp4">
         Your browser can't play this video. <a href="media/board-demo.mp4">Download it</a>.
       </video>
-      <p class="caption">Two-arm board hold, 134 s. Left: head camera with the live tilt and error overlay. Right: wrist cameras. The left wrist camera delivered no frames in this run, hence "no signal". The hold starts at 6.7 s. Pushes, lifts and tilts by hand run from about 24 s to 86 s, and the rest is hands-off. Click any chart below to jump the video to that moment.</p>
+      <p class="caption" id="caption">Two-arm board hold. Left: head camera with the live tilt and error overlay. Right: both wrist cameras, close up on the board edge. The video opens with the board being handed over and the grippers closing; the compliant hold starts at <span id="cap-hold">15 s</span>. Pushes, lifts and tilts by hand run from about <span id="cap-int">39 s to 98 s</span>, and the rest is hands-off. Click any chart below to jump the video to that moment.</p>
     </div>
     <div class="stats" id="stats">
       <div class="stat"><div class="v" id="st-within">70%</div><div class="l">of the run with the board within 1° of level</div></div>
@@ -290,6 +290,7 @@ pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ]
     <h2>Two-arm compliant board hold</h2>
     <p>Both grippers clamp the 40 cm edge of a 40 × 30 × 1.4 cm foam board, about 6 cm in from each corner. The jaws close vertically, so the board lies flat between them. Each arm holds its gripper's position and orientation, gravity compensated and compliant. Three things made it work:</p>
     <ul class="tight">
+      <li><b>Grasp blind.</b> The foam squeezes nearly flat: a gripper holding it stops at 0.9–1.2% of its range, against 0.5% for an empty one, and the load never spikes. So for the board the grippers simply close fully with the squeeze capped at 25% torque, and the person handing it over checks that it's in the jaws (<code>--grasp-blind</code>).</li>
       <li><b>Level first, in position mode.</b> The compliant hold can't make 2° corrections: turning the wrist also moves the tip, so shoulder, elbow and wrist would all have to move together, and all three are held by friction. Instead, before compliance starts, a Newton step on the model levels each gripper using the servos' own stiff position loop, to within <b>0.13°</b>.</li>
       <li><b>Equalize the tip heights</b> (<code>tools/level_board.py --apply</code>) so the board is level side to side. Without a board in the grippers: 0.46° → 0.31°.</li>
       <li><b>Soft push, firm return.</b> One fixed setting can't be both easy to push and accurate on return, because the same friction resists both. So the friction assist stays low (0.2) while the board is moving, and ramps to 0.9 once it has been still away from its goal for 0.5 s.</li>
@@ -299,7 +300,7 @@ pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ]
       <div class="chart-head"><div class="chart-title">Board tilt during the demo</div>
         <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>Left gripper tilt</span><span><span class="sw" style="background:var(--s2)"></span>Right gripper tilt</span><span><span class="sw" style="background:var(--s3)"></span>Side-to-side</span><span><span class="sw dash"></span>1° line</span><span><span class="sw band"></span>Hand interaction</span></div></div>
       <div class="chart" id="chTilt"></div>
-      <p class="hint">Degrees from level, against video time. Gripper tilt is the angle of each gripper's board normal from vertical. Side-to-side is the height difference between the two gripper tips, as an angle. The large peaks around 55–85 s are the board being tilted by hand; afterwards it settles back under 1°. Hover for values; click to jump the video.</p>
+      <p class="hint">Degrees from level, against video time. Gripper tilt is the angle of each gripper's board normal from vertical. Side-to-side is the height difference between the two gripper tips, as an angle. The large peaks are the board being pressed and tilted by hand; afterwards it settles back under 1°. Hover for values; click to jump the video.</p>
       <details class="data"><summary>Data table (5-second medians)</summary><div class="table-wrap" id="tbTilt"></div></details>
     </div>
 
@@ -307,7 +308,7 @@ pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ]
       <div class="chart-head"><div class="chart-title">Gripper position error from the hold goal</div>
         <div class="legend"><span><span class="sw" style="background:var(--s1)"></span>Left arm</span><span><span class="sw" style="background:var(--s2)"></span>Right arm</span><span><span class="sw band"></span>Hand interaction</span></div></div>
       <div class="chart" id="chErr"></div>
-      <p class="hint">mm. Peaks are the pushes. Tilting the board (until about 86 s) barely shows here, because it rotates the grippers in place. After the interaction, the right arm returns to about 2 mm. The left arm settles about 5 mm off: there, even the full return assist doesn't break through friction.</p>
+      <p class="hint">mm. Peaks are the pushes. Tilting the board barely shows here, because it rotates the grippers in place. <span id="err-after"></span></p>
       <details class="data"><summary>Data table (5-second medians and maxima)</summary><div class="table-wrap" id="tbErr"></div></details>
     </div>
 
@@ -325,6 +326,8 @@ pose goal:   τ = Jᵀ [ Kp (p_d − p) − Dp v ;  Ko log(R_d Rᵀ) − Do ω ]
     <ul class="tight">
       <li><b>In PWM mode, the position reading drops the homing offset.</b> It jumped by +1164 steps on a wrist whose offset is 1163, and the change can lag the mode switch. A goal computed from one of those readings once swung a shoulder about 71° into the other arm. Now the shift is measured across the mode switch and subtracted, and a goal that disagrees with the computed one is never written.</li>
       <li><b>Switching mode with torque off drops a loaded joint</b>, and the motor then stopped answering. Modes are now switched with torque on, without touching the EEPROM lock, so a power cycle always comes back in position mode.</li>
+      <li><b>Three USB 2.0 cameras share one 480 Mbit/s link.</b> The Orin Nano dev kit's four Type-A ports are rated 10 Gbps, but they sit behind one built-in hub, and the cameras only speak USB 2.0, so all their traffic goes over that hub's single USB 2.0 uplink. At 640×480 each, the third camera to start gets no frames (an earlier recording lost its left wrist view this way). The fix here: head camera at 640×480, wrist cameras at 320×240.</li>
+      <li><b>Soft objects have no grasp signal.</b> A gripper's own friction already reads about 105 load while closing on nothing, and squeezed foam stops the jaw within a few encoder steps of empty-closed. Contact detection works for the ping-pong ball (load threshold, plus a jaw that stops following its goal), but not for the foam board.</li>
       <li><b>A single corrupted reply</b> once read 62 °C on a 35 °C motor and stopped a run. Temperature and voltage faults now need 3 bad readings in a row.</li>
       <li><b>Geared friction dominates.</b> Static friction is about the size of gravity's pull, so a soft spring has a dead band of several millimetres. Accuracy against compliance is the central trade-off, and the friction assist and "soft push, firm return" are the tools for it.</li>
     </ul>
@@ -349,7 +352,7 @@ make rest ARM=both                      # fold to rest, torque off</code></pre>
     <ul class="tight">
       <li><b>Orientation:</b> hold only the two rotations a 5-joint arm can reach, so they stop competing with position.</li>
       <li><b>Exact return:</b> a slow, capped integral term would remove the last few millimetres; the left arm's 5 mm is the case to fix.</li>
-      <li><b>Left wrist camera:</b> it opened but delivered no frames during the recording. The likely suspect is USB bandwidth with three MJPG streams.</li>
+      <li><b>Cameras:</b> USB 3 cameras, or one camera on a separate USB 2.0 link, would allow full resolution on the wrists too.</li>
       <li><b>Holoscan:</b> on JetPack 7, the three NVIDIA operators map one-to-one onto the sync read, the gravity model and the PWM write. The serial bus would still cap the rate at about 300–400 Hz.</li>
     </ul>
   </section>
@@ -386,7 +389,7 @@ make rest ARM=both                      # fold to rest, torque off</code></pre>
     return out;
   };
   const video = document.getElementById("demoVideo");
-  const PUSH = [24, 86]; // seconds into the video: pushes (position error) and tilting (tilt) by hand
+  let PUSH = [39, 98];   // hand interaction, seconds into the video (from the data's summary)
   let X_MAX = 140;       // shared time axis for every chart (set from the recording length)
 
   // Line chart: x = video time (s). series: [{name, color, t, y, dash}]
@@ -538,6 +541,12 @@ make rest ARM=both                      # fold to rest, torque off</code></pre>
   fetch("data/board-demo.json").then(r => r.json()).then(d => {
     const s = d.summary;
     X_MAX = Math.ceil(s.video_s / 10) * 10;
+    if (s.interaction_s) PUSH = s.interaction_s;
+    const fx = v => (v == null ? "?" : (+v).toFixed(1));
+    document.getElementById("cap-hold").textContent = Math.round(s.hold_start_s) + " s";
+    if (s.interaction_s) document.getElementById("cap-int").textContent = s.interaction_s[0] + " s to " + s.interaction_s[1] + " s";
+    const after = document.getElementById("err-after");
+    if (after && s.after_err_mm) after.textContent = `After the interaction, the right arm settles ${fx(s.after_err_mm.right)} mm from its goal and the left arm ${fx(s.after_err_mm.left)} mm: there, even the full return assist doesn't break through friction. The board itself ends ${fx(s.after_tilt_deg)}° from level.`;
     document.getElementById("st-within").textContent = s.within_1deg_pct + "%";
     document.getElementById("st-side").textContent = s.side_median_deg.toFixed(2) + "°";
     document.getElementById("recName").textContent = s.recording;
