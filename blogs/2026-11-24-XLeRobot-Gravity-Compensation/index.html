@@ -152,11 +152,11 @@ footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--bor
   <section id="demo" aria-labelledby="demo-h">
     <h2 id="demo-h" class="sr-only" style="margin-top:28px">Demo</h2>
     <div class="card video-card">
-      <video id="demoVideo" controls playsinline preload="metadata" poster="media/board-demo-poster.jpg">
-        <source src="media/board-demo.mp4" type="video/mp4">
-        Your browser can't play this video. <a href="media/board-demo.mp4">Download it</a>.
+      <video id="demoVideo" controls playsinline preload="metadata" poster="media/board-demo-20261125-080955-board-poster.jpg">
+        <source src="media/board-demo-20261125-080955-board.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="media/board-demo-20261125-080955-board.mp4">Download it</a>.
       </video>
-      <p class="caption" id="caption">Two-arm board hold. Left: head camera with the live tilt and error overlay. Right: both wrist cameras, close up on the board edge. The video opens with the board being handed over and the grippers closing; the compliant hold starts at <span id="cap-hold">15 s</span>. Pushes, lifts and tilts by hand run from about <span id="cap-int">39 s to 98 s</span>, and the rest is hands-off. Click any chart below to jump the video to that moment.</p>
+      <p class="caption" id="caption">Two-arm board hold. Left: head camera with the live tilt and error overlay. Right: the left arm's wrist camera (top) and the right arm's (bottom), each close up on the board edge it holds. The video opens with the board being handed over and the grippers closing; the compliant hold starts at <span id="cap-hold">15 s</span>. Pushes, lifts and tilts by hand run from about <span id="cap-int">39 s to 98 s</span>, and the rest is hands-off. Click any chart below to jump the video to that moment.</p>
     </div>
     <div class="stats" id="stats">
       <div class="stat"><div class="v" id="st-within">70%</div><div class="l">of the run with the board within 1° of level</div></div>
@@ -538,7 +538,7 @@ make rest ARM=both                      # fold to rest, torque off</code></pre>
   let rz;
   addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => redraws.forEach(f => f()), 150); });
 
-  fetch("data/board-demo.json").then(r => r.json()).then(d => {
+  fetch("data/board-demo.json?v=20261125-080955-board").then(r => r.json()).then(d => {
     const s = d.summary;
     X_MAX = Math.ceil(s.video_s / 10) * 10;
     if (s.interaction_s) PUSH = s.interaction_s;
