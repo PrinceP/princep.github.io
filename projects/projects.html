@@ -41,6 +41,18 @@
 
       <div class="grid gap-6">
           <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
+              <h3 class="text-xl font-semibold mb-2 text-blue-900">XLeRobot ping-pong ball balancing</h3>
+              <p class="text-gray-600 mb-4">Both SO-101 arms of my MakerMods XLeRobot balance a ping-pong ball on a paddle at the same time, for about 4 minutes (249 s and 245 s), each seeing its ball only through its own wrist camera. zecice's PPO controller, trained in MuJoCo, runs unchanged on a Jetson Orin; the work was calibration, cameras, a white-ball detector, servo gains and running two arms at once.</p>
+              <div class="flex items-center gap-4 text-sm font-medium">
+                  <a href="../blogs/2026-11-26-XLeRobot-PingPong-Balance/" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="book-open" class="w-4 h-4"></i> Write-up and demo video
+                  </a>
+                  <a href="https://github.com/PrinceP/xlerobot-pingpong-balance" target="_blank" class="flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition">
+                      <i data-lucide="code" class="w-4 h-4"></i> Code
+                  </a>
+              </div>
+          </div>
+          <div class="p-6 bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition">
               <h3 class="text-xl font-semibold mb-2 text-blue-900">XLeRobot sponge handover with Gemini</h3>
               <p class="text-gray-600 mb-4">A MuJoCo model of the MakerMods XLeRobot, a derived sim-to-real joint mapping, two open-loop real runs and a closed loop driven by gemini-4-hydrogen on the Gemini API free tier, built on Google DeepMind's robotics-antigravity-plugin. No grasp yet; every failure and its cause is written up.</p>
               <div class="flex items-center gap-4 text-sm font-medium">
