@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XLeRobot Ping-Pong Ball Balancing - Prince</title>
+<meta name="description" content="Both SO-101 arms of a MakerMods XLeRobot balance a ping-pong ball on a paddle at the same time, each using only its own wrist camera, with a PPO controller trained in MuJoCo and run unchanged on a Jetson Orin.">
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --raised: #ffffff;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11,11,11,0.10);
+  --accent: #2a78d6;
+  --s1: #2a78d6;   /* left arm */
+  --s2: #eb6834;   /* right arm */
+  --warn-bg: #fff4e5;
+  --warn-ink: #7a4100;
+  --code-bg: #f0efec;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --accent: #3987e5; --s1: #3987e5; --s2: #d95926;
+    --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #202020;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --accent: #3987e5; --s1: #3987e5; --s2: #d95926;
+  --warn-bg: #2b2012; --warn-ink: #f3c07a; --code-bg: #262624;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-text-size-adjust: 100%;
+}
+a { color: var(--accent); }
+.wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+header.top { border-bottom: 1px solid var(--border); background: var(--surface); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; padding-bottom: 14px; }
+.brand { font-weight: 650; letter-spacing: -0.01em; }
+nav.toc { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 14px; }
+nav.toc a { color: var(--ink-2); text-decoration: none; }
+nav.toc a:hover { color: var(--ink); text-decoration: underline; }
+.theme-btn { border: 1px solid var(--border); background: var(--raised); color: var(--ink-2); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; letter-spacing: -0.02em; margin: 40px 0 12px; }
+h2 { font-size: 26px; letter-spacing: -0.01em; margin: 64px 0 8px; padding-top: 8px; }
+h3 { font-size: 18px; margin: 32px 0 8px; }
+p { margin: 0 0 14px; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 760px; }
+.small { font-size: 14px; color: var(--ink-2); }
+.muted { color: var(--muted); }
+code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; }
+code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; line-height: 1.5; margin: 0 0 16px; }
+pre code { background: none; padding: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+video { width: 100%; height: auto; display: block; border-radius: 10px; background: #000; }
+.video-card { padding: 10px; }
+.caption { font-size: 14px; color: var(--ink-2); margin: 10px 4px 2px; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0 0; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.stat .v { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.stat .l { font-size: 13px; color: var(--ink-2); margin-top: 6px; line-height: 1.35; }
+@media (max-width: 760px) { .stats { grid-template-columns: repeat(2, 1fr); } nav.toc { display: none; } }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+.links { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
+.links a { display: inline-block; border: 1px solid var(--border); background: var(--raised); border-radius: 8px; padding: 6px 12px; font-size: 14px; text-decoration: none; }
+.links a:hover { border-color: var(--accent); }
+table { width: 100%; border-collapse: collapse; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { font-weight: 600; color: var(--ink-2); font-size: 13px; }
+td.n, th.n { text-align: right; }
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin: 0 0 16px; }
+.note { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 12px 14px; font-size: 14.5px; margin: 0 0 16px; }
+ul.tight { margin: 0 0 14px; padding-left: 22px; }
+ul.tight li { margin: 4px 0; }
+/* diagram */
+.diagram svg { width: 100%; height: auto; display: block; }
+.diagram .box { fill: var(--raised); stroke: var(--axis); stroke-width: 1.2; }
+.diagram .boxhi { fill: var(--raised); stroke: var(--accent); stroke-width: 1.6; }
+.diagram text { fill: var(--ink); font-size: 13px; }
+.diagram .sub { fill: var(--ink-2); font-size: 11.5px; }
+.diagram .arrow { stroke: var(--ink-2); stroke-width: 1.5; fill: none; marker-end: url(#ah); }
+.diagram .loop { stroke: var(--muted); stroke-width: 1.2; fill: none; stroke-dasharray: 5 4; marker-end: url(#ah2); }
+/* duration bars */
+.bars { display: grid; gap: 10px; margin: 6px 0 4px; }
+.bar-row { display: grid; grid-template-columns: 90px 1fr 64px; align-items: center; gap: 10px; font-size: 14px; }
+.bar-track { height: 14px; background: var(--grid); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 0 4px 4px 0; }
+.bar-row .n { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+footer { margin: 72px 0 0; padding: 24px 0 40px; border-top: 1px solid var(--border); font-size: 14px; color: var(--ink-2); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><a href="../../index.html" style="color:inherit;text-decoration:none">Prince</a> <span class="muted">/</span> <a href="../blog.html" style="color:inherit;text-decoration:none">Blogs</a> <span class="muted">/</span> <a href="../../projects/projects.html" style="color:inherit;text-decoration:none">Projects</a></div>
+    <nav class="toc" aria-label="Sections">
+      <a href="#demo">Demo</a><a href="#robot">Robot</a><a href="#how">How it works</a><a href="#sim2real">Sim-to-real</a><a href="#xlerobot">XLeRobot changes</a><a href="#results">Results</a><a href="#run">Run it</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Toggle dark mode">Theme</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="small muted" style="margin:32px 0 -24px">2026-11-26</p>
+  <h1>Two robot arms balancing ping-pong balls, eyes on their own wrists</h1>
+  <p class="lede">Both SO-101 arms of my XLeRobot hold a table-tennis paddle and keep a ping-pong ball balanced on it, at the same time, for about four minutes. Each arm sees its ball only through its own wrist camera. The controller is <a href="https://github.com/zecice/so101-pingpong-balance">zecice's</a> PPO policy, trained in MuJoCo for a single SO-101 and used here without retraining. The work was getting a two-arm mobile robot, a white ball and different cameras to look enough like that simulation.</p>
+  <p class="small">Code: <a href="https://github.com/PrinceP/xlerobot-pingpong-balance">github.com/PrinceP/xlerobot-pingpong-balance</a> · Original project: <a href="https://github.com/zecice/so101-pingpong-balance">zecice/so101-pingpong-balance</a> · Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">PrinceP/MakerMods-XLeRobot</a></p>
+
+  <section id="demo" aria-labelledby="demo-h">
+    <h2 id="demo-h" class="sr-only" style="margin-top:28px">Demo</h2>
+    <div class="card video-card">
+      <video controls playsinline preload="metadata" poster="media/pingpong-both-arms-wrist-20261120-poster.jpg">
+        <source src="media/pingpong-both-arms-wrist-20261120.mp4" type="video/mp4">
+        Your browser can't play this video. <a href="media/pingpong-both-arms-wrist-20261120.mp4">Download it</a>.
+      </video>
+      <p class="caption">What the controllers see: the left wrist camera (left half) and the right wrist camera (right half) during the two-arm run, rotated so up is up. Each paddle is clamped edge-on to its camera, so the blade is a horizontal line and the ball sits on top of it. The 25 s clip runs from placing the balls to balancing. Third-person videos of the same run are on X:</p>
+      <div class="links" style="margin:8px 4px 4px">
+        <a href="https://x.com/x_princep/status/2122936066957017416" target="_blank" rel="noopener">▶ Video 1 on X</a>
+        <a href="https://x.com/x_princep/status/2122927733626024409" target="_blank" rel="noopener">▶ Video 2 on X</a>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="v">249 s</div><div class="l">left arm balancing, during the two-arm run</div></div>
+      <div class="stat"><div class="v">245 s</div><div class="l">right arm balancing, at the same time</div></div>
+      <div class="stat"><div class="v">1st try</div><div class="l">for each arm in the two-arm run, with the pretrained weights and no retraining</div></div>
+      <div class="stat"><div class="v">30 Hz</div><div class="l">camera-to-joint loop per arm, CPU only on the Jetson</div></div>
+    </div>
+  </section>
+
+  <section id="robot">
+    <h2>The robot</h2>
+    <p>This runs on my <a href="https://github.com/PrinceP/MakerMods-XLeRobot">MakerMods XLeRobot build</a>, the same robot as the <a href="../2026-11-24-XLeRobot-Gravity-Compensation/">gravity compensation post</a>: two SO-101 follower arms on a mobile cart, each with a USB camera on its wrist, run from a Jetson Orin on the robot. Each arm holds an ordinary table-tennis paddle with a wooden handle and balances a white 40 mm ball.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th></th><th>Left arm</th><th>Right arm</th></tr></thead>
+      <tbody>
+        <tr><td>Serial bus</td><td><code>/dev/ttyACM0</code>, arm motor IDs 1–6 (head motors 7–8 share the bus)</td><td><code>/dev/ttyACM1</code>, arm motor IDs 1–6 (wheels 7–9 share the bus)</td></tr>
+        <tr><td>Wrist camera</td><td>Innomaker U20CAM on USB port 2.4</td><td>Innomaker U20CAM on USB port 2.2</td></tr>
+        <tr><td>Calibration</td><td><code>xlerobot_left</code></td><td><code>xlerobot_right</code></td></tr>
+        <tr><td>Size correction <code>--r-corr</code></td><td>1.15</td><td>1.2</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">Software: Python 3.12, LeRobot 0.7.0 and PyTorch on the CPU. The networks are small MLPs, so the CPU is plenty.</p>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>The camera is the only sensor for the ball. Everything else the controller knows comes from the arm's own joint readings. Each arm runs this loop in its own process, 30 times a second:</p>
+    <div class="card diagram" role="img" aria-label="Control loop at 30 Hz: wrist camera, colour detector, estimator MLP, finite-difference velocity filter, PPO controller, joint position targets to the servos.">
+      <svg viewBox="0 0 1000 250" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--ink-2)"/></marker>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+        </defs>
+        <rect class="box" x="10" y="40" width="160" height="78" rx="10"/>
+        <text x="90" y="70" text-anchor="middle">Wrist camera</text>
+        <text class="sub" x="90" y="90" text-anchor="middle">640×480 MJPG</text>
+        <text class="sub" x="90" y="106" text-anchor="middle">→ 128×96</text>
+        <path class="arrow" d="M170 79 H208"/>
+        <rect class="box" x="210" y="40" width="160" height="78" rx="10"/>
+        <text x="290" y="70" text-anchor="middle">Detector</text>
+        <text class="sub" x="290" y="90" text-anchor="middle">colour threshold</text>
+        <text class="sub" x="290" y="106" text-anchor="middle">x, y, radius, visible</text>
+        <path class="arrow" d="M370 79 H408"/>
+        <rect class="boxhi" x="410" y="40" width="160" height="78" rx="10"/>
+        <text x="490" y="70" text-anchor="middle">Estimator</text>
+        <text class="sub" x="490" y="90" text-anchor="middle">MLP, last 3 detections</text>
+        <text class="sub" x="490" y="106" text-anchor="middle">→ ball on the paddle</text>
+        <path class="arrow" d="M570 79 H608"/>
+        <rect class="box" x="610" y="40" width="160" height="78" rx="10"/>
+        <text x="690" y="70" text-anchor="middle">Velocity filter</text>
+        <text class="sub" x="690" y="90" text-anchor="middle">filtered finite</text>
+        <text class="sub" x="690" y="106" text-anchor="middle">differences</text>
+        <path class="arrow" d="M770 79 H808"/>
+        <rect class="boxhi" x="810" y="40" width="180" height="78" rx="10"/>
+        <text x="900" y="70" text-anchor="middle">PPO controller</text>
+        <text class="sub" x="900" y="90" text-anchor="middle">MLP → 5 joint deltas</text>
+        <text class="sub" x="900" y="106" text-anchor="middle">+ joints, last 3 actions</text>
+        <path class="loop" d="M900 118 V160 Q900 172 888 172 H102 Q90 172 90 160 V122"/>
+        <text class="sub" x="495" y="190" text-anchor="middle">every 33 ms (30 Hz): position targets to the five arm servos, then the next frame</text>
+        <text class="sub" x="495" y="222" text-anchor="middle">Both learned parts (blue) were trained only in simulation, by zecice. Here they run unchanged, one process per arm.</text>
+      </svg>
+    </div>
+    <p class="small" style="margin-top:10px">The paddle is clamped edge-on to the wrist camera. The camera sees the blade from the side, as a line, and the ball close to one image column. Its height in the image and its size tell the estimator where the ball sits along and across the blade.</p>
+  </section>
+
+  <section id="sim2real">
+    <h2>Why a sim-trained controller works on a real arm</h2>
+    <div class="grid2">
+      <div>
+        <p>zecice's main idea: <b>train the controller with the real system's flaws from the start</b>. Then nothing about the real arm surprises it.</p>
+        <ul class="tight">
+          <li><b>Latency.</b> Each training episode gets a random control delay of 0–4 frames (0–133 ms), and the last 3 actions are in the observation, so the policy knows what's still in flight.</li>
+          <li><b>Soft servos.</b> Servo gains are low and randomized, because cheap servos sag and lag.</li>
+          <li><b>Realistic ball state.</b> The ball position the controller sees is noisy like the estimator's output, and its velocity comes from the <b>same finite-difference filter</b> the robot uses. A controller trained on exact velocity failed completely on velocity from the camera.</li>
+        </ul>
+        <p>What didn't work for zecice: an end-to-end CNN policy on wrist images. It was fine in simulation but barely saw the real ball. A plain colour detector plus a tiny estimator replaced it.</p>
+        <p class="small">In randomized simulation, 97.5% of episodes balance for 10 s, and 113 of 120 with the full camera pipeline simulated. Training takes about 2 hours and 29 million steps.</p>
+      </div>
+      <div class="card video-card">
+        <video controls playsinline muted loop preload="metadata" poster="media/pingpong-sim-zecice-poster.jpg">
+          <source src="media/pingpong-sim-zecice.mp4" type="video/mp4">
+        </video>
+        <p class="caption">zecice's trained controller in MuJoCo, on a single SO-101, with two gentle kicks to the ball. These weights are the ones running on the XLeRobot.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="xlerobot">
+    <h2>What had to change for the XLeRobot</h2>
+    <p>The policy stayed the same. Everything around it had to change, in roughly this order.</p>
+
+    <h3>1. Calibration</h3>
+    <ul class="tight">
+      <li><b>Calibrate in the middle pose.</b> My first XLeRobot calibration was done with the arms folded at rest. That gave <code>shoulder_lift</code> and <code>elbow_flex</code> the whole encoder circle (0–4095), so the usable range ended at the rest pose. Recalibrating with the upper arm up, forearm forward and wrist straight fixed it.</li>
+      <li><b>One file per arm.</b> XLeRobot keeps one combined calibration file. The balancer uses LeRobot's single-arm <code>SOFollower</code>, so <code>hardware.xlerobot split-calib</code> copies the values unchanged into one file per arm. They match what's in the motors, so no recalibration prompt appears.</li>
+    </ul>
+
+    <h3>2. Wrist cameras</h3>
+    <ul class="tight">
+      <li>All three Innomaker cameras report the <b>same serial number</b>, so they're selected by USB port (<code>/dev/v4l/by-path</code>), not by ID or <code>/dev/videoN</code>.</li>
+      <li>They have <b>no 320×240 mode</b>. OpenCV silently falls back to 640×360 (16:9), which would stretch the 4:3 image the estimator was trained on. 640×480 MJPG keeps the shape.</li>
+      <li>A capture <b>buffer of 1 halves the frame rate</b> to 15 fps on these cameras. A buffer of 2 gives 29.6 fps on both wrist cameras at once.</li>
+      <li>Auto exposure's dynamic frame rate is off, so a dim room can't slow the loop down.</li>
+    </ul>
+    <p class="small">With the paddle clamped edge-on, the real view matches zecice's simulated camera closely: the blade near the image centre and the resting ball at about x +0.2, y −0.2.</p>
+
+    <h3>3. A white ball instead of an orange one</h3>
+    <p>The detector looks for orange. My balls are white. A "white" threshold (low saturation, high brightness) also matches white walls, the wooden handle, the printed arm parts and skin. Three things made it reliable:</p>
+    <ul class="tight">
+      <li><b>Region of interest.</b> Only the strip just past the blade line and above the handle is searched, where a ball on the blade can actually be.</li>
+      <li><b>Saturation up to 120.</b> The red rubber tints the ball pink (you can see it in the video). With a strict threshold, only a crescent of the ball was found, its size shrank, and the ball was "lost" while sitting at the centre. Most short early attempts ended that way.</li>
+      <li><b>Size calibration (<code>--r-corr</code>).</b> The estimator turns blob size into position along the blade: 5–10% of size is about 1 cm. With the ball resting at the centre, <code>--r-corr</code> is set so the estimate reads (0, 0): 1.15 on the left, 1.2 on the right.</li>
+    </ul>
+    <p class="note">An orange ball would have avoided all of section 3.</p>
+
+    <h3>4. Paddle grip and home pose</h3>
+    <ul class="tight">
+      <li>The wrist has to be lifted about 90° before the paddle goes in, because the XLeRobot's cart is in the way at rest. The handle is clamped deep in the jaws, blade edge-on to the camera.</li>
+      <li><b>Level the home pose with the ball, not by eye.</b> Posed by eye, both blades were 9–10° off level, and the policy has no integral term to correct a tilt. So: place the ball, nudge <code>wrist_flex</code> and <code>wrist_roll</code> 1–2° at a time with <code>hardware.jog --rel</code>, and save when the ball rests.</li>
+      <li>Do that with the paddle clamped exactly as it will run. Re-clamping, or an extra squeeze, tips a round handle in the jaws by a degree or two. Runs start with <code>--grip-load 0</code> for that reason.</li>
+    </ul>
+
+    <h3>5. Servos</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Problem</th><th>What happened</th><th>Fix</th></tr></thead>
+      <tbody>
+        <tr><td>Servo stiffness</td><td>At zecice's P gain of 32, <code>shoulder_lift</code> moved only 15% of a 3° upward step: the paddle and the XLeRobot's longer lever load it more</td><td><b>P gain 64</b>: every joint tracks within 6% (<code>hardware.step_response</code>)</td></tr>
+        <tr><td>Heat</td><td>A home pose with the upper arm far forward took the left shoulder to 71 °C. It tripped its overheat cut-out and the arm dropped</td><td>Keep the upper arm near upright, release torque between runs, and stop at 65 °C (<code>--max-temp</code>, <code>hardware.temps</code>)</td></tr>
+        <tr><td>Blocked joints</td><td>A joint that can't reach home starts the policy from the wrong pose</td><td><code>run_real</code> refuses to start if any joint is more than 5° from home</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>6. Two arms at once</h3>
+    <ul class="tight">
+      <li><b>One torch thread per process.</b> Each arm runs in its own process (<code>scripts/run_both.sh</code>). By default each process ran about 20 busy PyTorch threads, and two of them starved each other. With one thread each, both keep 30 Hz.</li>
+      <li><b>Start only on a resting ball.</b> Starting while the hand placing the ball was still in view gave a wrong first estimate, a jerk, and a ball thrown toward the tip. Now control starts only once the ball has rested near the centre for 0.5 s.</li>
+      <li><b>Keep the goals the arm already holds.</b> On start, <code>run_real</code> keeps the arm's current goals (with sag compensation) instead of re-sending home, so it doesn't droop and roll a resting ball off.</li>
+    </ul>
+  </section>
+
+  <section id="results">
+    <h2>Results</h2>
+    <p>Both arms balanced at the same time, each on its first attempt, with zecice's pretrained weights:</p>
+    <div class="card" style="margin:0 0 16px">
+      <div class="bars" role="img" aria-label="Balance time: left arm 249 seconds, right arm 245 seconds">
+        <div class="bar-row"><span>Left arm</span><div class="bar-track"><div class="bar-fill" style="width:99.6%;background:var(--s1)"></div></div><span class="n">249 s</span></div>
+        <div class="bar-row"><span>Right arm</span><div class="bar-track"><div class="bar-fill" style="width:98%;background:var(--s2)"></div></div><span class="n">245 s</span></div>
+      </div>
+      <p class="hint small muted" style="margin:8px 0 0">Seconds of continuous balancing in the two-arm run, on a 0–250 s scale.</p>
+    </div>
+    <p>The right arm holds the ball 2–3 cm off the blade centre in steady state. The policy has no integral action, so a small level or size-calibration error shows up as a constant offset rather than being corrected.</p>
+  </section>
+
+  <section id="run">
+    <h2>Run it</h2>
+    <p>On the robot computer, with the XLeRobot host or bridge stopped (these scripts need the arms' serial ports). Every hardware script takes <code>--arm left|right</code>, which picks the port, calibration, wrist camera and home file.</p>
+<pre><code>python -m hardware.xlerobot split-calib                       # once per calibration: one SOFollower file per arm
+python -m hardware.jog --arm right wrist_flex=-12             # lift the wrist clear of the cart
+python -m hardware.jog --arm right wrist_roll=0 gripper=40    # centre the roll, open the gripper
+python -m hardware.run_real --arm right --grip-only --home /nonexistent  # o, insert the paddle edge-on, Enter: squeeze
+python -m hardware.pose_guide --arm right                     # arm goes limp: pose it with the paddle level, Ctrl+C saves home
+python -m hardware.jog --arm right --rel wrist_flex=-1        # nudge until the ball rests, then --save-home
+python -m hardware.run_real --arm right --ball white --kp 64 --r-corr 1.2 --grip-load 0   # balance
+python -m hardware.torque_off --arm right                     # hold the arm: it goes limp
+
+# both arms at once
+LEFT_ARGS="--r-corr 1.15" RIGHT_ARGS="--r-corr 1.2" scripts/run_both.sh --ball white --kp 64 --grip-load 0</code></pre>
+    <p class="small">Checks that move nothing: <code>hardware.ball_view</code> runs the detector on live frames, and <code>hardware.temps</code> shows motor temperatures and fault flags. You can also try the controller without an arm: <code>uv run python -m sim.view_controller --rand</code>.</p>
+    <p class="note"><b>Safety:</b> the arms move on their own and stay powered after the scripts exit. Keep clear and be ready to press Ctrl+C. To release an arm, hold it and run <code>hardware.torque_off</code>.</p>
+  </section>
+
+  <section id="next">
+    <h2>Limits and next steps</h2>
+    <ul class="tight">
+      <li><b>Retrain for this robot.</b> A controller and estimator trained with my paddle's mass and the Innomaker camera's field of view should remove the right arm's 2–3 cm offset. The simulated camera is still zecice's (62° vertical field of view).</li>
+      <li><b>Tilt test.</b> The built-in tilt test (<code>--tilt-test</code>) was inconclusive: with a 3° tilt, the leftover level error dominated. Balancing works, so the joint signs are right.</li>
+      <li><b>Orange balls.</b> They would make the detector trivial again.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Code: <a href="https://github.com/PrinceP/xlerobot-pingpong-balance">PrinceP/xlerobot-pingpong-balance</a>. Built on <a href="https://github.com/zecice/so101-pingpong-balance">zecice/so101-pingpong-balance</a> by zecice (MIT): the MuJoCo environment, PPO controller, ball detector and estimator, pretrained weights and the real-arm loop all come from that work, and the simulation clip above is theirs. Please star the original. SO-101 model files by TheRobotStudio (Apache-2.0), paddle mesh by Samuel Galla and Tim Huber (MIT). Robot: <a href="https://github.com/PrinceP/MakerMods-XLeRobot">MakerMods XLeRobot</a> with <a href="https://github.com/huggingface/lerobot">LeRobot</a>.
+  </footer>
+</main>
+
+<script>
+(function () {
+  // Theme toggle: OS default, then the viewer's choice (remembered when storage works).
+  const root = document.documentElement;
+  try { const t = localStorage.getItem("theme"); if (t) root.dataset.theme = t; } catch (e) {}
+  document.getElementById("themeBtn").addEventListener("click", () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark";
+    try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+  });
+})();
+</script>
+</body>
+</html>
